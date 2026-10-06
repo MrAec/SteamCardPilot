@@ -87,7 +87,7 @@ internal sealed class EngineClient : IDisposable {
  }
 
  internal async Task SaveParentalPinAsync(string name, string pin) {
-  if (!AccountNameRules.IsValid(name)) throw new ArgumentException(AccountNameRules.Help);
+  if (!AccountNameRules.IsSafeFileName(name)) throw new ArgumentException("Invalid or reserved account filename.");
   string file = Path.Combine(DataPath, "config", name + ".json");
   JsonObject config = JsonNode.Parse(await File.ReadAllTextAsync(file))?.AsObject() ?? throw new InvalidOperationException("Could not read account settings.");
   JsonObject updated = ParentalPinSettings.WithPin(config, pin);
