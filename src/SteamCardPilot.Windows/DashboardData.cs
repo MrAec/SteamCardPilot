@@ -9,7 +9,6 @@ internal sealed record ActivityView(string Text, string Time);
 internal sealed record InventoryView(string Name, string Detail);
 
 internal sealed record GameView(string BotName, uint AppId, string Name, int Cards, float Hours, bool Active, bool Listed = true) {
- public string Artwork => $"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{AppId}/header.jpg";
  public string Initial => Name.Length == 0 ? "?" : Name[..1].ToUpperInvariant();
  public string State => Active ? "●  Farming cards" : Listed ? "Waiting" : "Last known";
  public string CardsLabel => $"{Cards} cards left";

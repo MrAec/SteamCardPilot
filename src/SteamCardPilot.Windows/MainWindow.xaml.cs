@@ -289,7 +289,6 @@ public partial class MainWindow : Window {
    if (button.Content is StackPanel content) content.Width = compact ? 134 : 170;
   }
  }
- private void GameArtwork_Failed(object sender, ExceptionRoutedEventArgs e) => ((Image)sender).Visibility = Visibility.Collapsed;
  private async void PauseGame_Click(object sender, RoutedEventArgs e) {
   if (((Button)sender).DataContext is not GameView game || !ready) return;
   await RunAsync(async () => { await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(game.BotName)}/Pause", new { Permanent = true }, true); await RefreshAsync(); }, $"Farming paused for {game.BotName}.");

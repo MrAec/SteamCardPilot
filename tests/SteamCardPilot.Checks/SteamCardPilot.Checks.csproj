@@ -14,6 +14,7 @@
   <Compile Include="../../src/SteamCardPilot.Windows/BotView.cs" Link="BotView.cs"/>
   <Compile Include="../../src/SteamCardPilot.Windows/ParentalPinSettings.cs" Link="ParentalPinSettings.cs"/>
   <Compile Include="../../src/SteamCardPilot.Windows/DashboardData.cs" Link="DashboardData.cs"/>
+  <Compile Include="../../src/SteamCardPilot.Windows/GameArtworkCache.cs" Link="GameArtworkCache.cs"/>
  </ItemGroup>
  <ItemGroup><Compile Include="../../src/SteamCardPilot.Windows/FarmingSelection.cs" Link="FarmingSelection.cs" /></ItemGroup>
 </Project>

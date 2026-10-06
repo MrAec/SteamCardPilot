@@ -2,6 +2,8 @@
 using System.Text.Json.Nodes;
 using SteamCardPilot;
 
+await ArtworkChecks.RunAsync();
+
 static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 var active = BotView.FromJson("Sample", JsonNode.Parse("""
 {"IsConnectedAndLoggedOn":true,"KeepRunning":true,"RequiredInput":0,"Nickname":"Demo Player","CardsFarmer":{"NowFarming":true,"GamesToFarm":[{"CardsRemaining":3},{"CardsRemaining":2}],"CurrentGamesFarming":[{"GameName":"Sample Game"}]}}

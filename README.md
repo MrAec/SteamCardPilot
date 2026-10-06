@@ -74,6 +74,7 @@ Runtime data stays in `%LOCALAPPDATA%\AutoPlaySteam`. This storage name is retai
 - `logs/`: local engine activity.
 - `games.json`: cached game metadata.
 - `selection.json`: the selected game for each account.
+- `artwork/`: downloaded game thumbnails, reused when scrolling and reopening the app. Missing fixed-path images are resolved through Steam's current store metadata.
 
 The new-account form sends a password to the engine for sign-in without writing it to the account JSON file. The engine may retain login/session data. Imported configuration files retain their existing password-storage preferences. Family View PINs are saved in local account configuration.
 
