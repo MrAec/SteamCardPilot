@@ -102,6 +102,7 @@ The desktop lives in `src/SteamCardPilot.Windows`, and its checks live in `tests
 dotnet build SteamCardPilot.slnx -c Release
 dotnet test src/engine/ArchiSteamFarm.Tests/ArchiSteamFarm.Tests.csproj -c Release
 dotnet run --project tests/SteamCardPilot.Checks -c Release
+dotnet run --project tests/SteamCardPilot.UiChecks -c Release
 ```
 
 After publishing, run the local engine integration checks:

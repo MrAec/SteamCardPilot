@@ -5,7 +5,6 @@ using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,8 +16,6 @@ using Microsoft.Win32;
 namespace SteamCardPilot;
 
 public partial class MainWindow : Window {
- [GeneratedRegex("^[a-zA-Z0-9_-]{1,64}$")]
- private static partial Regex AccountNamePattern();
  private readonly EngineClient engine = new();
  private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(4) };
  private readonly SemaphoreSlim operations = new(1, 1);
@@ -39,6 +36,7 @@ public partial class MainWindow : Window {
   dashboard = new(Environment.GetCommandLineArgs().Contains("--preview") ? null : Path.Combine(engine.DataPath, "games.json"));
   farmingSelection = new(Environment.GetCommandLineArgs().Contains("--preview") ? null : Path.Combine(engine.DataPath, "selection.json"));
   InitializeComponent();
+  VersionText.Text = $"Version {typeof(App).Assembly.GetName().Version?.ToString(3)} • © 2026 Mr_Aec";
   DataPathText.Text = Environment.GetCommandLineArgs().Contains("--preview") ? "%LOCALAPPDATA%\\AutoPlaySteam" : engine.DataPath;
   engine.Log += line => Dispatcher.BeginInvoke(() => {
    LogOutput.AppendText(line + Environment.NewLine);
@@ -208,7 +206,7 @@ public partial class MainWindow : Window {
   if (!ready) { StatusText.Text = "Wait for the engine connection first."; return; }
   string name = NewName.Text.Trim(), login = NewLogin.Text.Trim(), password = NewPassword.Password;
   string parentalPin = NewParentalPin.Password;
-  if (!AccountNamePattern().IsMatch(name) || name.Equals("ASF", StringComparison.OrdinalIgnoreCase)) { StatusText.Text = "Account names must contain 1–64 letters, digits, hyphens, or underscores and cannot be ASF."; return; }
+  if (!AccountNameRules.IsValid(name)) { StatusText.Text = AccountNameRules.Help; return; }
   if (string.IsNullOrWhiteSpace(login)) { StatusText.Text = "Enter your Steam username."; return; }
   if (parentalPin.Length != 0 && !ParentalPinSettings.IsValid(parentalPin)) { StatusText.Text = "The Family View PIN must contain exactly four digits."; return; }
   await RunAsync(async () => {
@@ -232,7 +230,7 @@ public partial class MainWindow : Window {
    int copied = 0, skipped = 0;
    foreach (string source in dialog.FileNames) {
     string name = Path.GetFileNameWithoutExtension(source);
-    if (name.Equals("ASF", StringComparison.OrdinalIgnoreCase) || !AccountNamePattern().IsMatch(name) || File.Exists(Path.Combine(engine.DataPath, "config", name + ".json"))) { skipped++; continue; }
+    if (!AccountNameRules.IsValid(name) || File.Exists(Path.Combine(engine.DataPath, "config", name + ".json"))) { skipped++; continue; }
     JsonNode? config = JsonNode.Parse(await File.ReadAllTextAsync(source));
     if (config is not JsonObject) throw new InvalidOperationException($"{name}: account files must contain a valid JSON object.");
     await engine.RequestAsync("Api/Bot/" + Uri.EscapeDataString(name), new { BotConfig = config }, true);

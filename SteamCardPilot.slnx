@@ -2,6 +2,7 @@
  <Project Path="src/engine/ArchiSteamFarm/ArchiSteamFarm.csproj" />
  <Project Path="src/SteamCardPilot.Windows/SteamCardPilot.Windows.csproj" />
  <Project Path="tests/SteamCardPilot.Checks/SteamCardPilot.Checks.csproj" />
+ <Project Path="tests/SteamCardPilot.UiChecks/SteamCardPilot.UiChecks.csproj" />
  <Project Path="src/engine/ArchiSteamFarm.OfficialPlugins.ItemsMatcher/ArchiSteamFarm.OfficialPlugins.ItemsMatcher.csproj" />
  <Project Path="src/engine/ArchiSteamFarm.OfficialPlugins.MobileAuthenticator/ArchiSteamFarm.OfficialPlugins.MobileAuthenticator.csproj" />
  <Project Path="src/engine/ArchiSteamFarm.OfficialPlugins.Monitoring/ArchiSteamFarm.OfficialPlugins.Monitoring.csproj" />

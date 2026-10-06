@@ -23,6 +23,8 @@ jobs:
         run: dotnet test src/engine/ArchiSteamFarm.Tests/ArchiSteamFarm.Tests.csproj -c Release --no-build
       - name: Desktop checks
         run: dotnet run --project tests/SteamCardPilot.Checks -c Release --no-build
+      - name: Theme checks
+        run: dotnet run --project tests/SteamCardPilot.UiChecks -c Release --no-build
       - name: Package desktop and engine
         shell: pwsh
         run: ./tools/publish-windows.ps1 -FrameworkDependent

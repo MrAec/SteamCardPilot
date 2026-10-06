@@ -572,7 +572,7 @@
             <TextBlock Text="Steam Card Pilot" FontSize="32" FontWeight="SemiBold" />
             <TextBlock Text="Your Steam accounts and cards, in one control center." Foreground="#8CA8C6" Margin="0,12,0,30" />
             <TextBlock Text="An open-source Windows application by Mr_Aec." FontSize="16" />
-            <TextBlock Text="Version 1.2.0 • © 2026 Mr_Aec" Foreground="#4A9EFF" Margin="0,18,0,0" />
+            <TextBlock x:Name="VersionText" Foreground="#4A9EFF" Margin="0,18,0,0" />
             <TextBlock Text="Connect your accounts, choose a game, and manage card farming." Foreground="#8CA8C6" Margin="0,18,0,0" />
             <Button Content="Licenses and Components" Click="Licenses_Click" HorizontalAlignment="Left" Margin="0,24,0,0" />
           </StackPanel>

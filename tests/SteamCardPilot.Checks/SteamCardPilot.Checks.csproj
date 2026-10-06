@@ -4,13 +4,14 @@
   <ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers>
   <ApplicationIcon/><SignAssembly>false</SignAssembly><PublicSign>false</PublicSign>
   <RootNamespace>SteamCardPilot</RootNamespace>
-  <Product>Steam Card Pilot</Product><Version>1.2.0</Version>
+  <Product>Steam Card Pilot</Product><Version>$(SteamCardPilotVersion)</Version>
   <Authors>Mr_Aec</Authors><Company>Mr_Aec</Company>
   <Copyright>Copyright © 2026 Mr_Aec</Copyright>
   <Description>Desktop and local engine integration checks for Steam Card Pilot.</Description>
  </PropertyGroup>
  <ItemGroup>
   <Compile Include="../../src/SteamCardPilot.Windows/EngineClient.cs" Link="EngineClient.cs"/>
+  <Compile Include="../../src/SteamCardPilot.Windows/AccountNameRules.cs" Link="AccountNameRules.cs"/>
   <Compile Include="../../src/SteamCardPilot.Windows/BotView.cs" Link="BotView.cs"/>
   <Compile Include="../../src/SteamCardPilot.Windows/ParentalPinSettings.cs" Link="ParentalPinSettings.cs"/>
   <Compile Include="../../src/SteamCardPilot.Windows/DashboardData.cs" Link="DashboardData.cs"/>

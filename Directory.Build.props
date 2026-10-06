@@ -1,6 +1,7 @@
 <Project>
 	<PropertyGroup>
 		<SteamCardPilotRoot>$(MSBuildThisFileDirectory)</SteamCardPilotRoot>
+		<SteamCardPilotVersion>1.2.1</SteamCardPilotVersion>
 		<Version>6.3.10.4</Version>
 		<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
 	</PropertyGroup>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF>
+  <ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers>
+  <ApplicationIcon/><SignAssembly>false</SignAssembly><PublicSign>false</PublicSign>
+  <Product>Steam Card Pilot</Product><Version>$(SteamCardPilotVersion)</Version>
+  <Authors>Mr_Aec</Authors><Company>Mr_Aec</Company><Copyright>Copyright © 2026 Mr_Aec</Copyright>
+ </PropertyGroup>
+ <ItemGroup><ProjectReference Include="../../src/SteamCardPilot.Windows/SteamCardPilot.Windows.csproj" /></ItemGroup>
+</Project>

@@ -5,6 +5,8 @@ using SteamCardPilot;
 await ArtworkChecks.RunAsync();
 
 static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
+Require(new[] { "alpha", "Account_2", "my-bot", "COM10" }.All(AccountNameRules.IsValid), "Valid account names must remain supported.");
+Require(new[] { "", "ASF", "asf", "CON", "con", "PRN", "AUX", "NUL", "COM1", "LPT9", "../escape", new string('a', 65) }.All(name => !AccountNameRules.IsValid(name)), "Reserved device names, engine names, paths, and oversized account names must be rejected before creating files.");
 var active = BotView.FromJson("Sample", JsonNode.Parse("""
 {"IsConnectedAndLoggedOn":true,"KeepRunning":true,"RequiredInput":0,"Nickname":"Demo Player","CardsFarmer":{"NowFarming":true,"GamesToFarm":[{"CardsRemaining":3},{"CardsRemaining":2}],"CurrentGamesFarming":[{"GameName":"Sample Game"}]}}
 """));

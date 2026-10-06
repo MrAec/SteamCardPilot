@@ -6,7 +6,7 @@
     <AssemblyName>SteamCardPilot</AssemblyName>
     <RootNamespace>SteamCardPilot</RootNamespace>
     <Product>Steam Card Pilot</Product>
-    <Version>1.2.0</Version>
+    <Version>$(SteamCardPilotVersion)</Version>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageLicenseFile></PackageLicenseFile>
     <PackageProjectUrl>https://github.com/MrAec/SteamCardPilot</PackageProjectUrl>
