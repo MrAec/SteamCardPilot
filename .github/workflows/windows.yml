@@ -20,6 +20,11 @@ jobs:
       - name: Build
         run: dotnet build SteamCardPilot.slnx -c Release
       - name: Engine tests
-        run: dotnet test ArchiSteamFarm.Tests/ArchiSteamFarm.Tests.csproj -c Release --no-build
+        run: dotnet test src/engine/ArchiSteamFarm.Tests/ArchiSteamFarm.Tests.csproj -c Release --no-build
       - name: Desktop checks
-        run: dotnet run --project AutoPlaySteam.Checks -c Release --no-build
+        run: dotnet run --project tests/SteamCardPilot.Checks -c Release --no-build
+      - name: Package desktop and engine
+        shell: pwsh
+        run: ./tools/publish-windows.ps1 -FrameworkDependent
+      - name: Local engine integration checks
+        run: dotnet run --project tests/SteamCardPilot.Checks -c Release --no-build -- dist/SteamCardPilot/engine

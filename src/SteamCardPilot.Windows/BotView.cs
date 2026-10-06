@@ -1,7 +1,7 @@
 // Copyright © 2026 Mr_Aec. License: LICENSE-Mr_Aec.txt.
 using System.Text.Json.Nodes;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 internal sealed record BotView(string Name, string State, string Details, int Cards, int RequiredInput, bool Online) {
  public bool Running { get; init; }

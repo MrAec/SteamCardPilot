@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 internal sealed class EngineClient : IDisposable {
  internal string DataPath { get; }
@@ -77,7 +77,9 @@ internal sealed class EngineClient : IDisposable {
   if (post) request.Content = JsonContent.Create(body ?? new { });
   using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(path.Contains("/DesktopGame/", StringComparison.Ordinal) ? 180 : path.Contains("/Inventory/", StringComparison.Ordinal) || path.EndsWith("/Pause", StringComparison.Ordinal) ? 60 : 12));
   using HttpResponseMessage response = await http.SendAsync(request, cancellation.Token);
-  JsonNode? result = JsonNode.Parse(await response.Content.ReadAsStringAsync());
+  JsonNode? result;
+  try { result = JsonNode.Parse(await response.Content.ReadAsStringAsync(cancellation.Token)); }
+  catch (JsonException) { throw new InvalidOperationException($"The engine returned an invalid response ({(int)response.StatusCode}). Check Activity for details."); }
   if (!response.IsSuccessStatusCode || result?["Success"]?.GetValue<bool>() != true) {
    throw new InvalidOperationException(result?["Message"]?.GetValue<string>() ?? $"Operation failed ({(int)response.StatusCode}).");
   }

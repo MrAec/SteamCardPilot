@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 public partial class ParentalPinWindow : Window {
  internal string Pin { get; private set; } = "";

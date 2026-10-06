@@ -6,7 +6,6 @@
 	</Configurations>
 
 	<Project Path="ArchiSteamFarm/ArchiSteamFarm.csproj" />
- <Project Path="AutoPlaySteam.Windows/AutoPlaySteam.Windows.csproj" />
 
 	<Project Path="ArchiSteamFarm.CustomPlugins.ExamplePlugin/ArchiSteamFarm.CustomPlugins.ExamplePlugin.csproj" />
 	<Project Path="ArchiSteamFarm.CustomPlugins.PeriodicGC/ArchiSteamFarm.CustomPlugins.PeriodicGC.csproj" />

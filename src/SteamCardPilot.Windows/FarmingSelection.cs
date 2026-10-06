@@ -2,13 +2,13 @@
 using System.IO;
 using System.Text.Json;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 internal sealed class FarmingSelection {
  private readonly string? path;
  private readonly Dictionary<string, uint> selections;
  internal FarmingSelection(string? path = null) {
-  this.path = path;
+  this.path = path is null ? null : Path.GetFullPath(path);
   selections = new(StringComparer.Ordinal);
   if (path is null || !File.Exists(path)) return;
   try {

@@ -1,5 +1,6 @@
+// Copyright © 2026 Mr_Aec. License: LICENSE-Mr_Aec.txt.
 using System.Text.Json.Nodes;
-using AutoPlaySteam;
+using SteamCardPilot;
 
 static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 var active = BotView.FromJson("Sample", JsonNode.Parse("""
@@ -25,7 +26,7 @@ Require(dashboardCheck.ObservedDrops == 1 && dashboardCheck.Games.Count == 2 && 
 gameSnapshot["TestAccount"]!["IsConnectedAndLoggedOn"] = false;
 dashboardCheck.Update(gameSnapshot);
 Require(dashboardCheck.Games.Count == 2 && dashboardCheck.Games.All(g => !g.Active), "Games must be preserved when the connection drops.");
-string cacheFile = Path.Combine(Path.GetTempPath(), "AutoPlaySteam-Games-" + Guid.NewGuid().ToString("N"), "games.json");
+string cacheFile = Path.Combine(Path.GetTempPath(), "SteamCardPilot-Games-" + Guid.NewGuid().ToString("N"), "games.json");
 var cachedDashboard = new DashboardData(cacheFile);
 gameSnapshot["TestAccount"]!["CardsFarmer"]!["GamesToFarm"] = JsonNode.Parse("""[{"AppID":42,"GameName":"Sample","CardsRemaining":2}]""");
 cachedDashboard.Update(gameSnapshot);
@@ -60,6 +61,20 @@ var restoredSelection = new FarmingSelection(selectionFile);
 Require(restoredSelection.Get("TestAccount") == 42 && restoredSelection.Get("SecondAccount") == 43 && restoredSelection.Get("NewAccount") == 0, "Selections must be isolated by account and restored on reopening.");
 restoredSelection.Set("TestAccount", 0);
 Require(new FarmingSelection(selectionFile).Get("TestAccount") == 0, "Switching to all games must be saved.");
+string relativeSelectionFile = Path.GetRelativePath(Environment.CurrentDirectory, selectionFile);
+var relativeSelection = new FarmingSelection(relativeSelectionFile);
+relativeSelection.Set("RelativeAccount", 44);
+Require(new FarmingSelection(selectionFile).Get("RelativeAccount") == 44, "Relative selection paths must save to the same file.");
+// A bare file name has no directory component. Both stores must still persist it.
+string previousDirectory = Environment.CurrentDirectory;
+try {
+ Environment.CurrentDirectory = Path.GetDirectoryName(cacheFile)!;
+ new FarmingSelection("selection.json").Set("BarePathAccount", 45);
+ var relativeDashboard = new DashboardData("games.json");
+ relativeDashboard.Update(gameSnapshot);
+ Require(new FarmingSelection("selection.json").Get("BarePathAccount") == 45, "A bare selection filename must support saving.");
+ Require(JsonNode.Parse(File.ReadAllText("games.json"))!.AsArray().Count == 1, "A bare cache filename must support saving.");
+} finally { Environment.CurrentDirectory = previousDirectory; }
 Console.WriteLine("Game, queue, estimate, and session progress checks passed.");
 Console.WriteLine("Status and card count checks passed.");
 Require(ParentalPinSettings.IsValid("0123") && !ParentalPinSettings.IsValid("12a4") && !ParentalPinSettings.IsValid("１２３４"), "PINs must contain four ASCII digits; leading zeroes must be preserved.");
@@ -67,13 +82,17 @@ var originalSettings = JsonNode.Parse("""{"SteamLogin":"offline-check","Enabled"
 var changedSettings = ParentalPinSettings.WithPin(originalSettings, "0123");
 Require(changedSettings["SteamPassword"]!.GetValue<string>() == "existing-password" && changedSettings["PluginSetting"]!["Keep"]!.GetValue<bool>() && originalSettings["SteamParentalCode"] is null, "Saving the PIN must preserve existing settings.");
 if (args.Length == 0) return;
-string testPath = Path.Combine(Path.GetTempPath(), "AutoPlaySteam-Check-" + Guid.NewGuid().ToString("N"));
+string testPath = Path.Combine(Path.GetTempPath(), "SteamCardPilot-Check-" + Guid.NewGuid().ToString("N"));
 using var engine = new EngineClient(testPath, Path.GetFullPath(args[0]));
 List<string> errors = [];
 engine.Log += line => { if (line.Contains("|ERROR|", StringComparison.Ordinal)) { lock (errors) errors.Add(line); } };
 try {
  await engine.StartAsync();
  await engine.StartAsync();
+ bool invalidResponseRejected = false;
+ try { await engine.RequestAsync("missing-desktop-check-endpoint"); }
+ catch (InvalidOperationException) { invalidResponseRejected = true; }
+ Require(invalidResponseRejected, "Non-JSON error responses must produce a readable engine operation error.");
  Require((await engine.RequestAsync("Api/Bot/ASF"))?.AsObject().Count == 0, "An empty workspace was expected.");
  await engine.RequestAsync("Api/Bot/TestAccount", new { BotConfig = new { Enabled = false, SteamLogin = "offline-check" } }, true);
  await engine.WaitForBotAsync("TestAccount");

@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json;
 using System.IO;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 internal sealed record ActivityView(string Text, string Time);
 internal sealed record InventoryView(string Name, string Detail);
@@ -23,7 +23,7 @@ internal sealed class DashboardData {
  private readonly Dictionary<string, GameView> catalog = new(StringComparer.Ordinal);
  private readonly string? cachePath;
  public DashboardData(string? cachePath = null) {
-  this.cachePath = cachePath;
+  this.cachePath = cachePath is null ? null : Path.GetFullPath(cachePath);
   if (cachePath is null || !File.Exists(cachePath)) return;
   try {
    foreach (GameView game in JsonSerializer.Deserialize<List<GameView>>(File.ReadAllText(cachePath)) ?? []) {

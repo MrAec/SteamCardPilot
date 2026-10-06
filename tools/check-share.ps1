@@ -25,7 +25,7 @@ foreach ($taskRelative in $taskFiles) {
  }
  foreach ($taskMatch in [regex]::Matches($taskContent, '"(?:SteamLogin|SteamPassword|SteamParentalCode|IPCPassword|shared_secret|identity_secret)"\s*:\s*"([^"\r\n]+)"')) {
   $taskValue = $taskMatch.Groups[1].Value
-  $taskSyntheticTest = $taskRelative -match '(^|/)(AutoPlaySteam.Checks|ArchiSteamFarm.Tests)/' -and $taskValue -in $taskFakeValues
+  $taskSyntheticTest = $taskRelative -match '(^|/)(SteamCardPilot.Checks|ArchiSteamFarm.Tests)/' -and $taskValue -in $taskFakeValues
   if (!$taskSyntheticTest) { $taskFindings.Add("${taskRelative}: literal account credential detected") }
  }
 }

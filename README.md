@@ -95,18 +95,18 @@ The engine provides the total remaining-time estimate for active accounts. Indiv
 
 ## Development
 
-The desktop lives in `AutoPlaySteam.Windows`. `ArchiSteamFarm` contains the engine and its desktop-specific sign-in and selected-game extensions. The existing internal desktop namespace and project directory names are retained to keep this fork easy to compare with its base.
+The desktop lives in `src/SteamCardPilot.Windows`, and its checks live in `tests/SteamCardPilot.Checks`. `src/engine` contains the ArchiSteamFarm engine, plugins, and engine tests. Upstream engine assembly names and copyright notices are preserved for plugin compatibility and attribution. `SteamCardPilot.slnx` is the main solution; the optional engine solution is in `src/engine/ArchiSteamFarm.slnx`.
 
 ```powershell
 dotnet build SteamCardPilot.slnx -c Release
-dotnet test ArchiSteamFarm.Tests/ArchiSteamFarm.Tests.csproj -c Release
-dotnet run --project AutoPlaySteam.Checks -c Release
+dotnet test src/engine/ArchiSteamFarm.Tests/ArchiSteamFarm.Tests.csproj -c Release
+dotnet run --project tests/SteamCardPilot.Checks -c Release
 ```
 
 After publishing, run the local engine integration checks:
 
 ```powershell
-dotnet run --project AutoPlaySteam.Checks -c Release -- dist/SteamCardPilot/engine
+dotnet run --project tests/SteamCardPilot.Checks -c Release -- dist/SteamCardPilot/engine
 ```
 
 Integration checks use a temporary disabled account with fake credentials; they do not sign in to a real Steam account. They cover account creation, password handling, Family View PIN preservation, authenticated local IPC, and engine restart.
@@ -121,6 +121,10 @@ Generate a privacy-safe preview or rebuild the icon:
 The icon generator creates a 1024px PNG and a Windows ICO containing 16, 24, 32, 48, 64, 128, and 256px variants. Preview mode does not start the engine or load your account configuration.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Never attach account configuration, authenticator files, unredacted logs, or screenshots containing credentials.
+
+## Contribute
+
+Everyone can [fork the repository](https://github.com/MrAec/SteamCardPilot/fork), commit improvements in their fork, and submit a pull request to `main`. Maintainers review and merge contributions. See the [contribution guide](CONTRIBUTING.md) for the full workflow, [report a bug or suggest a feature](https://github.com/MrAec/SteamCardPilot/issues/new/choose), or join [Discussions](https://github.com/MrAec/SteamCardPilot/discussions).
 
 ## License and credits
 

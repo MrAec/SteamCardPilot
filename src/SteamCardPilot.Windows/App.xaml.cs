@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Windows;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 public partial class App : Application {
  protected override void OnStartup(StartupEventArgs e) {

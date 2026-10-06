@@ -9,12 +9,12 @@ function Publish-Project([string]$Project, [string]$Destination, [string]$Contai
     & dotnet publish (Join-Path $taskRoot $Project) -c Release -r win-x64 --self-contained $Contained -o $Destination -p:PublishTrimmed=false -p:SatelliteResourceLanguages=en-US
     if ($LASTEXITCODE -ne 0) { throw "Build failed: $Project" }
 }
-Publish-Project 'ArchiSteamFarm/ArchiSteamFarm.csproj' (Join-Path $taskStage 'engine')
-Publish-Project 'AutoPlaySteam.Windows/AutoPlaySteam.Windows.csproj' $taskStage
+Publish-Project 'src/engine/ArchiSteamFarm/ArchiSteamFarm.csproj' (Join-Path $taskStage 'engine')
+Publish-Project 'src/SteamCardPilot.Windows/SteamCardPilot.Windows.csproj' $taskStage
 $taskPlugins = @('ItemsMatcher', 'MobileAuthenticator', 'Monitoring')
 if ($IncludeTokenDumper) { $taskPlugins += 'SteamTokenDumper' }
 foreach ($plugin in $taskPlugins) {
-    $project = "ArchiSteamFarm.OfficialPlugins.$plugin/ArchiSteamFarm.OfficialPlugins.$plugin.csproj"
+    $project = "src/engine/ArchiSteamFarm.OfficialPlugins.$plugin/ArchiSteamFarm.OfficialPlugins.$plugin.csproj"
     Publish-Project $project (Join-Path $taskStage "engine/plugins/$plugin") 'false'
 }
 Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE.txt'), (Join-Path $taskRoot 'LICENSE-Mr_Aec.txt'), (Join-Path $taskRoot 'NOTICE.txt'), (Join-Path $taskRoot 'README.md') -Destination $taskStage

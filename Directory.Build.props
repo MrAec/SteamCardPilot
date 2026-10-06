@@ -1,5 +1,6 @@
 <Project>
 	<PropertyGroup>
+		<SteamCardPilotRoot>$(MSBuildThisFileDirectory)</SteamCardPilotRoot>
 		<Version>6.3.10.4</Version>
 		<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
 	</PropertyGroup>
@@ -8,7 +9,7 @@
 	<PropertyGroup>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AnalysisMode>AllEnabledByDefault</AnalysisMode>
-		<ApplicationIcon>../resources/ASF.ico</ApplicationIcon>
+		<ApplicationIcon>$(SteamCardPilotRoot)resources/ASF.ico</ApplicationIcon>
 		<Authors>JustArchi</Authors>
 		<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
 		<Company>JustArchiNET</Company>
@@ -22,9 +23,9 @@
 		<NeutralLanguage>en</NeutralLanguage>
 		<NoWarn>CA1028,CA1031,CS1591</NoWarn>
 		<Nullable>enable</Nullable>
-		<PackageIcon>../resources/ASF.ico</PackageIcon>
+		<PackageIcon>$(SteamCardPilotRoot)resources/ASF.ico</PackageIcon>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<PackageProjectUrl>https://github.com/$(Company)/ArchiSteamFarm</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/MrAec/SteamCardPilot</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageReleaseNotes>$(PackageProjectUrl)/releases</PackageReleaseNotes>
 		<PublishDocumentationFile>false</PublishDocumentationFile>
@@ -70,15 +71,15 @@
 
 	<!-- Enable public signing -->
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-		<AssemblyOriginatorKeyFile>../resources/ArchiSteamFarm.snk.pub</AssemblyOriginatorKeyFile>
+		<AssemblyOriginatorKeyFile>$(SteamCardPilotRoot)resources/ArchiSteamFarm.snk.pub</AssemblyOriginatorKeyFile>
 		<DefineConstants>$(DefineConstants);ASF_SIGNED_BUILD</DefineConstants>
 		<PublicSign>true</PublicSign>
 		<SignAssembly>true</SignAssembly>
 	</PropertyGroup>
 
 	<!-- Private SNK signing, if provided with secret -->
-	<PropertyGroup Condition="'$(Configuration)' == 'Release' AND EXISTS('resources/ArchiSteamFarm.snk')">
-		<AssemblyOriginatorKeyFile>../resources/ArchiSteamFarm.snk</AssemblyOriginatorKeyFile>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release' AND EXISTS('$(SteamCardPilotRoot)resources/ArchiSteamFarm.snk')">
+		<AssemblyOriginatorKeyFile>$(SteamCardPilotRoot)resources/ArchiSteamFarm.snk</AssemblyOriginatorKeyFile>
 		<DefineConstants>$(DefineConstants);ASF_SIGNED_BUILD</DefineConstants>
 		<PublicSign>false</PublicSign>
 		<SignAssembly>true</SignAssembly>

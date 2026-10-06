@@ -1,7 +1,7 @@
 // Copyright © 2026 Mr_Aec. License: LICENSE-Mr_Aec.txt.
 using System.Text.Json.Nodes;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 internal static class ParentalPinSettings {
  internal static bool IsValid(string pin) => pin.Length == 4 && pin.All(c => c is >= '0' and <= '9');

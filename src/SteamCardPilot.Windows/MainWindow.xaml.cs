@@ -14,7 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
-namespace AutoPlaySteam;
+namespace SteamCardPilot;
 
 public partial class MainWindow : Window {
  [GeneratedRegex("^[a-zA-Z0-9_-]{1,64}$")]
