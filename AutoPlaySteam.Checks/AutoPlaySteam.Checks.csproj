@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+  <ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers>
+  <ApplicationIcon/><SignAssembly>false</SignAssembly><PublicSign>false</PublicSign>
+ </PropertyGroup>
+ <ItemGroup>
+  <Compile Include="../AutoPlaySteam.Windows/EngineClient.cs" Link="EngineClient.cs"/>
+  <Compile Include="../AutoPlaySteam.Windows/BotView.cs" Link="BotView.cs"/>
+  <Compile Include="../AutoPlaySteam.Windows/ParentalPinSettings.cs" Link="ParentalPinSettings.cs"/>
+  <Compile Include="../AutoPlaySteam.Windows/DashboardData.cs" Link="DashboardData.cs"/>
+ </ItemGroup>
+ <ItemGroup><Compile Include="../AutoPlaySteam.Windows/FarmingSelection.cs" Link="FarmingSelection.cs" /></ItemGroup>
+</Project>

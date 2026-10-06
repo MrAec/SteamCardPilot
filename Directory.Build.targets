@@ -1,0 +1,6 @@
+<Project>
+ <ItemGroup>
+  <_UnusedLanguageResource Include="Localization/Strings.*.resx" Exclude="Localization/Strings.en-US.resx" />
+  <EmbeddedResource Remove="@(_UnusedLanguageResource)" />
+ </ItemGroup>
+</Project>

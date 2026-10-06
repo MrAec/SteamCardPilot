@@ -1,0 +1,18 @@
+Steam Card Pilot
+Copyright 2026 Mr_Aec — original desktop interface, icon, tools, and documentation.
+Licensed under Apache License 2.0. See LICENSE.txt and LICENSE-Mr_Aec.txt.
+
+Based on ArchiSteamFarm 6.3.10.4
+Copyright 2015-2026 Łukasz "JustArchi" Domeradzki and contributors.
+https://github.com/JustArchiNET/ArchiSteamFarm
+Licensed under Apache License 2.0. Original source notices are retained.
+Third-party dependencies retain their respective licenses.
+
+Changes made by Mr_Aec:
+- Native Windows WPF desktop, local engine management, and Windows packaging.
+- Mobile Steam approval flow and explicit Family View PIN entry.
+- Selected-game farming, connection-preserving pause, and persistent game metadata.
+- Dashboard, inventory view, commands, activity, and responsive layout.
+- English-only desktop and engine resource packaging, custom icon, and privacy-safe sharing tools.
+
+Steam Card Pilot is not endorsed or supported by the ArchiSteamFarm authors or Valve.

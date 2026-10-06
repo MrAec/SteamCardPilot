@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>SteamCardPilot</AssemblyName>
+    <RootNamespace>AutoPlaySteam</RootNamespace>
+    <Product>Steam Card Pilot</Product>
+    <Version>1.2.0</Version>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseFile></PackageLicenseFile>
+    <PackageProjectUrl></PackageProjectUrl>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <RepositoryUrl></RepositoryUrl>
+    <Authors>Mr_Aec</Authors>
+    <Company>Mr_Aec</Company>
+    <Copyright>Copyright © 2026 Mr_Aec</Copyright>
+    <Description>An English Windows app for managing Steam accounts and card farming.</Description>
+    <ApplicationIcon>../resources/SteamCardPilot.ico</ApplicationIcon>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SignAssembly>false</SignAssembly>
+    <PublicSign>false</PublicSign>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup><None Include="../LICENSE-Mr_Aec.txt" Link="LICENSE-Mr_Aec.txt" Pack="true" PackagePath="" /></ItemGroup>
+  <ItemGroup><Resource Include="../resources/SteamCardPilot.png" Link="Assets/SteamCardPilot.png" /></ItemGroup>
+</Project>

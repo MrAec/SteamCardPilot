@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window x:Class="AutoPlaySteam.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Steam Card Pilot" Width="1560" Height="980" MinWidth="1180" MinHeight="760" WindowStartupLocation="CenterScreen" Background="#080F19" Foreground="#EDF3FC" FontFamily="Segoe UI" FontSize="14">
+  <Window.Resources>
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="Background" Value="#0D1825" />
+      <Setter Property="BorderBrush" Value="#1D2B3C" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="18" />
+    </Style>
+    <Style x:Key="Navigation" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Margin" Value="0,0,0,7" />
+      <Setter Property="Padding" Value="15,13" />
+      <Setter Property="FontSize" Value="15" />
+    </Style>
+    <Style TargetType="DataGrid">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#DCE8F5" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="AutoGenerateColumns" Value="False" />
+      <Setter Property="IsReadOnly" Value="True" />
+      <Setter Property="CanUserAddRows" Value="False" />
+      <Setter Property="CanUserDeleteRows" Value="False" />
+      <Setter Property="HeadersVisibility" Value="Column" />
+      <Setter Property="GridLinesVisibility" Value="Horizontal" />
+      <Setter Property="HorizontalGridLinesBrush" Value="#192A3A" />
+      <Setter Property="RowBackground" Value="Transparent" />
+      <Setter Property="AlternatingRowBackground" Value="#0C1723" />
+      <Setter Property="RowHeight" Value="60" />
+      <Setter Property="ColumnHeaderHeight" Value="38" />
+      <Setter Property="SelectionMode" Value="Single" />
+    </Style>
+    <Style TargetType="DataGridColumnHeader">
+      <Setter Property="Background" Value="#111F2E" />
+      <Setter Property="Foreground" Value="#9DB0C6" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style TargetType="DataGridCell">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="DataGridCell">
+            <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+              <ContentPresenter VerticalAlignment="Center" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="#173557" />
+          <Setter Property="Foreground" Value="#FFFFFF" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <DataTemplate x:Key="GameTitle">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="90" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Background="#173657" Width="78" Height="43" CornerRadius="5" HorizontalAlignment="Left">
+          <Grid>
+            <TextBlock Text="{Binding Initial}" FontSize="22" Foreground="#4C9FFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Image Source="{Binding Artwork}" Stretch="UniformToFill" ImageFailed="GameArtwork_Failed" />
+          </Grid>
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding BotName}" FontSize="11" Foreground="#8196AF" Margin="0,4,0,0" />
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+  </Window.Resources>
+  <Grid Background="#080F19">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="236" x:Name="SidebarColumn" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Border BorderBrush="#192838" BorderThickness="0,0,1,0">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#0B1724" Offset="0" />
+          <GradientStop Color="#0B2038" Offset="1" />
+        </LinearGradientBrush>
+      </Border.Background>
+      <DockPanel Margin="16,24,16,18">
+        <Grid DockPanel.Dock="Top" Margin="4,0,0,30">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="49" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Image Source="Assets/SteamCardPilot.png" Width="42" Height="42" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Steam Card Pilot" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="Card farming manager" FontSize="11" Foreground="#8DA2BA" Margin="0,5,0,0" />
+          </StackPanel>
+        </Grid>
+        <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Background="#0D2035" Padding="16">
+          <StackPanel>
+            <TextBlock Text="◉" FontSize="27" Foreground="#4A9EFF" />
+            <TextBlock x:Name="ProfileName" Text="No account added" FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <TextBlock x:Name="ProfileState" Text="●  Waiting for connection" Foreground="#7390AD" FontSize="11" Margin="0,6,0,0" />
+            <DockPanel Margin="0,18,0,0">
+              <TextBlock Text="Total accounts" Foreground="#8DA2BA" />
+              <TextBlock x:Name="AccountCount" Text="0" HorizontalAlignment="Right" />
+            </DockPanel>
+            <DockPanel Margin="0,6,0,0">
+              <TextBlock Text="Online" Foreground="#8DA2BA" />
+              <TextBlock x:Name="OnlineCount" Text="0" Foreground="#4ADE90" HorizontalAlignment="Right" />
+            </DockPanel>
+          </StackPanel>
+        </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel>
+            <Button x:Name="NavHome" Style="{StaticResource Navigation}" Click="Dashboard_Click" Background="#16477B">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Overview" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavGames" Style="{StaticResource Navigation}" Click="Games_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Games" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavQueue" Style="{StaticResource Navigation}" Click="Queue_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Queue" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavInventory" Style="{StaticResource Navigation}" Click="Inventory_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Inventory" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavSettings" Style="{StaticResource Navigation}" Click="Settings_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Settings" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavAccounts" Style="{StaticResource Navigation}" Click="ManageAccounts_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Accounts" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavCommands" Style="{StaticResource Navigation}" Click="Commands_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Commands" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavLogs" Style="{StaticResource Navigation}" Click="Logs_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="Activity" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="NavAbout" Style="{StaticResource Navigation}" Click="About_Click">
+              <StackPanel Orientation="Horizontal" Width="170">
+                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="21" Width="34" />
+                <TextBlock Text="About" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+    <Grid Grid.Column="1" Margin="22,20,22,16">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,20">
+        <Border DockPanel.Dock="Right" Background="#102B32" CornerRadius="14" Padding="12,7">
+          <TextBlock x:Name="ConnectionText" Text="●  Starting" Foreground="#54DBBA" FontSize="11" />
+        </Border>
+        <TextBlock x:Name="PageTitle" Text="Overview" FontSize="22" FontWeight="SemiBold" />
+      </DockPanel>
+      <Grid Grid.Row="1">
+        <Grid x:Name="DashboardPane">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="18" />
+            <ColumnDefinition Width="292" x:Name="SidePanelColumn" />
+          </Grid.ColumnDefinitions>
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <UniformGrid Columns="4" Margin="0,0,0,18">
+              <Border Style="{StaticResource Card}" Margin="0,0,10,0" Padding="14">
+                <Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Border Background="#143252" CornerRadius="9" Width="39" Height="49" HorizontalAlignment="Left">
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="#4B9AFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="Cards Left" Foreground="#B3C2D3" FontSize="12" />
+                    <TextBlock x:Name="CardCount" Text="0" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0" />
+                  </StackPanel>
+                  <TextBlock Grid.Row="1" Text="0 games" x:Name="GameCountLabel" Foreground="#8396AE" FontSize="11" Margin="0,12,0,0" Grid.ColumnSpan="2" />
+                </Grid>
+              </Border>
+              <Border Style="{StaticResource Card}" Margin="0,0,10,0" Padding="14">
+                <Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Border Background="#143252" CornerRadius="9" Width="39" Height="49" HorizontalAlignment="Left">
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="#4B9AFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="Farming Now" Foreground="#B3C2D3" FontSize="12" />
+                    <TextBlock x:Name="ActiveCount" Text="0" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0" />
+                  </StackPanel>
+                  <TextBlock Grid.Row="1" Text="Games farming cards" Foreground="#8396AE" FontSize="11" Margin="0,12,0,0" Grid.ColumnSpan="2" />
+                </Grid>
+              </Border>
+              <Border Style="{StaticResource Card}" Margin="0,0,10,0" Padding="14">
+                <Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Border Background="#143252" CornerRadius="9" Width="39" Height="49" HorizontalAlignment="Left">
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="#4B9AFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock x:Name="DropsLabel" Text="Observed Drops" Foreground="#B3C2D3" FontSize="12" />
+                    <TextBlock x:Name="EarnedCount" Text="0" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0" />
+                  </StackPanel>
+                  <TextBlock Grid.Row="1" Text="This session" Foreground="#8396AE" FontSize="11" Margin="0,12,0,0" Grid.ColumnSpan="2" />
+                </Grid>
+              </Border>
+              <Border Style="{StaticResource Card}" Padding="14">
+                <Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <Border Background="#143252" CornerRadius="9" Width="39" Height="49" HorizontalAlignment="Left">
+                    <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="#4B9AFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Text="Estimated Time" Foreground="#B3C2D3" FontSize="12" />
+                    <TextBlock x:Name="TimeEstimate" Text="0" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0" />
+                  </StackPanel>
+                  <TextBlock Grid.Row="1" Text="Engine estimate" Foreground="#8396AE" FontSize="11" Margin="0,12,0,0" Grid.ColumnSpan="2" />
+                </Grid>
+              </Border>
+            </UniformGrid>
+            <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14" Margin="0,0,0,18">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel Margin="2,0,0,14">
+                  <Button DockPanel.Dock="Right" Content="■  Stop All" Click="AllPause_Click" Foreground="#FF7D91" FontSize="11" Padding="10,8" Margin="0" />
+                  <TextBlock x:Name="ActiveTitle" Text="●  Games Farming Now (0)" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+                <Grid Grid.Row="1">
+                  <DataGrid x:Name="ActiveGames" MaxHeight="310" MinHeight="100">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Header="Game" Width="*" CellTemplate="{StaticResource GameTitle}" />
+                      <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="135" />
+                      <DataGridTextColumn Header="Cards Left" Binding="{Binding Cards}" Width="85" />
+                      <DataGridTextColumn Header="Estimated Time" Binding="{Binding Estimate}" Width="115" />
+                    <DataGridTemplateColumn Header="Stop" Width="63">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate>
+                            <Button Content="■" Foreground="#FF6684" Background="#291C30" Padding="9" Margin="0" Click="PauseGame_Click" ToolTip="Pause farming for this account" />
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                  </DataGrid>
+                  <StackPanel x:Name="ActiveEmpty" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="No games are farming right now" Foreground="#A9BDD3" FontSize="16" TextAlignment="Center" />
+                    <TextBlock Text="Start farming an eligible game to see it here." Foreground="#7188A1" FontSize="12" Margin="0,8,0,0" />
+                  </StackPanel>
+                </Grid>
+              </Grid>
+            </Border>
+            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="14">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel Margin="2,0,0,14">
+                  <Button DockPanel.Dock="Right" Content="≡  View Queue" Click="Queue_Click" FontSize="11" Padding="10,8" Margin="0" />
+                  <TextBlock x:Name="QueueTitle" Text="Queued Games (0)" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+                <Grid Grid.Row="1">
+                  <DataGrid x:Name="QueueGames">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Header="Game" Width="*" CellTemplate="{StaticResource GameTitle}" />
+                      <DataGridTextColumn Header="Cards Left" Binding="{Binding Cards}" Width="100" />
+                      <DataGridTextColumn Header="Hours Played" Binding="{Binding HoursLabel}" Width="135" />
+                      <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="90" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                  <TextBlock x:Name="QueueEmpty" Text="The queue is empty. Eligible games appear after scanning." Foreground="#8399B1" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                </Grid>
+              </Grid>
+            </Border>
+          </Grid>
+          <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+              <Border Style="{StaticResource Card}" Margin="0,0,0,18">
+                <StackPanel>
+                  <TextBlock Text="Session Progress" FontSize="19" FontWeight="SemiBold" />
+                  <Grid Margin="0,18,0,16">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="124" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="114" Height="114">
+                      <Ellipse Stroke="#213145" StrokeThickness="11" Margin="8" />
+                      <Path x:Name="ProgressArc" StrokeThickness="11" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                        <Path.Stroke>
+                          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#2C7CFF" Offset="0" />
+                            <GradientStop Color="#27CFCB" Offset="1" />
+                          </LinearGradientBrush>
+                        </Path.Stroke>
+                      </Path>
+                      <TextBlock x:Name="ProgressPercent" Text="—" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="26" FontWeight="SemiBold" />
+                    </Grid>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock x:Name="ProgressCards" Text="0 cards" FontSize="22" FontWeight="SemiBold" />
+                      <TextBlock Text="Observed card drops" FontSize="11" Foreground="#8CA1BA" Margin="0,5,0,0" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock x:Name="ActiveSummary" Text="●  Active games: 0" Foreground="#4EADFF" Margin="0,0,0,9" />
+                  <TextBlock x:Name="QueueSummary" Text="●  Queued games: 0" Foreground="#91A4BA" />
+                  <TextBlock Text="Tracks card decreases observed in this session.&#xA;Previous months are not included." Foreground="#6E849D" FontSize="10" Margin="0,15,0,0" />
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}" Margin="0,0,0,18">
+                <StackPanel>
+                  <TextBlock Text="Quick Actions" FontSize="19" FontWeight="SemiBold" Margin="0,0,0,16" />
+                  <Button Content="▶  Start All Farming" Click="AllFarm_Click" Background="#1D6BD5" Margin="0,0,0,10" />
+                  <Button Content="■  Stop All" Click="AllPause_Click" Margin="0,0,0,10" />
+                  <Button Content="↻  Refresh Queue" Click="Refresh_Click" Background="Transparent" Margin="0,0,0,6" />
+                  <Button Content="＋  Add Account" Click="Accounts_Click" Background="Transparent" Margin="0,0,0,6" />
+                  <Button Content="▶  Resume Saved Selection" Click="AllResume_Click" Background="Transparent" Margin="0" />
+                </StackPanel>
+              </Border>
+              <Border Style="{StaticResource Card}">
+                <StackPanel>
+                  <DockPanel Margin="0,0,0,15">
+                    <Button DockPanel.Dock="Right" Content="All" Click="Logs_Click" Padding="9,6" Margin="0" FontSize="11" />
+                    <TextBlock Text="Recent Activity" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  </DockPanel>
+                  <ItemsControl x:Name="RecentEvents">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid Margin="0,0,0,14">
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="●" Foreground="#39C69F" FontSize="17" />
+                          <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Text}" FontSize="12" />
+                            <TextBlock Text="{Binding Time}" Foreground="#6F869E" FontSize="10" Margin="0,4,0,0" />
+                          </StackPanel>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+        <Grid x:Name="ManagePane" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <DockPanel Margin="0,0,0,20">
+            <Button DockPanel.Dock="Right" Content="＋  Add Account" Click="Accounts_Click" Background="#1D6BD5" Margin="0" />
+            <TextBlock Text="Select an account to manage its connection and sign-in." Foreground="#9BB0C8" VerticalAlignment="Center" />
+          </DockPanel>
+          <Grid Grid.Row="1">
+            <ListBox x:Name="BotList" SelectionChanged="BotList_SelectionChanged">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="220" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}" FontSize="19" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Details}" Foreground="#92A9C2" Margin="0,7,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                      <TextBlock Text="{Binding State}" Foreground="#4CBFFF" HorizontalAlignment="Right" />
+                      <TextBlock Text="{Binding CardsLabel}" Foreground="#92A9C2" Margin="0,7,0,0" HorizontalAlignment="Right" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Border x:Name="EmptyState" Style="{StaticResource Card}">
+              <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Add Your First Account" FontSize="26" FontWeight="SemiBold" />
+                <Button Content="＋  Add Account" Click="Accounts_Click" Background="#1D6BD5" Margin="0,20,0,0" />
+              </StackPanel>
+            </Border>
+          </Grid>
+          <StackPanel Grid.Row="2" Margin="0,18,0,0">
+            <WrapPanel x:Name="BotActions" IsEnabled="False">
+              <Button Content="Connect Account" Tag="Start" Click="BotAction_Click" Background="#1D6BD5" />
+              <Button Content="Stop Farming" Tag="Pause" Click="BotAction_Click" />
+              <Button Content="Resume" Tag="Resume" Click="BotAction_Click" />
+              <Button Content="Family PIN" Click="ParentalPin_Click" />
+            </WrapPanel>
+            <Border x:Name="GuardPanel" Visibility="Collapsed" Style="{StaticResource Card}" Margin="0,16,0,0">
+              <StackPanel>
+                <TextBlock x:Name="GuardLabel" />
+                <DockPanel Margin="0,8,0,0">
+                  <Button x:Name="GuardSubmit" Content="Submit" DockPanel.Dock="Right" Click="Guard_Click" Background="#1D6BD5" />
+                  <PasswordBox x:Name="GuardValue" Margin="0,0,10,0" />
+                </DockPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+        <Grid x:Name="GamesPane" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <DockPanel Margin="0,0,0,18">
+            <Button Content="Scan Games" DockPanel.Dock="Right" Click="ScanGames_Click" />
+            <Button Content="▶ Start Selected Game" DockPanel.Dock="Right" Click="StartSelectedGame_Click" Background="#176BC7" />
+            <Button Content="■ Stop" DockPanel.Dock="Right" Click="StopSelectedGame_Click" />
+            <TextBlock x:Name="GamesDescription" Text="Select a game and start card farming." TextWrapping="Wrap" Foreground="#9BB0C8" VerticalAlignment="Center" />
+          </DockPanel>
+          <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14">
+            <DataGrid x:Name="AllGames">
+              <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Game" Width="*" CellTemplate="{StaticResource GameTitle}" />
+                <DataGridTextColumn Header="Account" Binding="{Binding BotName}" Width="130" />
+                <DataGridTextColumn Header="Cards Left" Binding="{Binding Cards}" Width="100" />
+                <DataGridTextColumn Header="Hours Played" Binding="{Binding HoursLabel}" Width="145" />
+                <DataGridTextColumn Header="Estimated Time" Binding="{Binding Estimate}" Width="120" />
+                <DataGridTextColumn Header="Status" Binding="{Binding State}" Width="155" />
+              </DataGrid.Columns>
+            </DataGrid>
+          </Border>
+        </Grid>
+        <Grid x:Name="InventoryPane" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <DockPanel Margin="0,0,0,18">
+            <Button Content="Load Inventory" DockPanel.Dock="Right" Click="LoadInventory_Click" />
+            <TextBlock Text="Select an online account from Accounts to view its Steam community inventory." Foreground="#9BB0C8" VerticalAlignment="Center" />
+          </DockPanel>
+          <Border Grid.Row="1" Style="{StaticResource Card}">
+            <ListBox x:Name="InventoryList">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <DockPanel>
+                    <TextBlock Text="{Binding Name}" FontSize="16" />
+                    <TextBlock Text="{Binding Detail}" Foreground="#839BB5" HorizontalAlignment="Right" />
+                  </DockPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+        </Grid>
+        <ScrollViewer x:Name="AccountsPane" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+          <StackPanel MaxWidth="600" HorizontalAlignment="Left">
+            <TextBlock Text="New Steam Account" FontSize="23" FontWeight="SemiBold" />
+            <TextBlock Text="Name your account. If sign-in needs a Steam Guard code, submit it from Accounts." Foreground="{StaticResource Muted}" Margin="0,10,0,24" />
+            <TextBlock Text="Account name" />
+            <TextBox x:Name="NewName" ToolTip="Use letters, digits, hyphens, or underscores." />
+            <TextBlock Text="Steam username" />
+            <TextBox x:Name="NewLogin" />
+            <TextBlock Text="Steam password" />
+            <PasswordBox x:Name="NewPassword" />
+            <TextBlock Text="Family View PIN (optional)" />
+            <PasswordBox x:Name="NewParentalPin" MaxLength="4" />
+            <TextBlock Text="If Family View is enabled, enter your existing four-digit PIN. It is stored in local account settings." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,0,16" />
+            <TextBlock Text="New passwords are used for sign-in and are not saved by this form. The engine can store Steam session data in your local user folder." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,0,20" />
+            <Button x:Name="AddAccountButton" Content="Create Account" Click="AddAccount_Click" HorizontalAlignment="Left" Background="#1D6BD5" Foreground="White" />
+            <Border Height="1" Background="#293A50" Margin="0,30" />
+            <TextBlock Text="Import Existing Accounts" FontSize="21" />
+            <TextBlock Text="Select account JSON files from your old config folder. Existing accounts are not overwritten; ASF.json and IPC.config are excluded." Foreground="{StaticResource Muted}" Margin="0,10,0,20" />
+            <Button Content="Import Account Files" Click="Import_Click" HorizontalAlignment="Left" />
+          </StackPanel>
+        </ScrollViewer>
+        <Grid x:Name="CommandsPane" Visibility="Collapsed">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <StackPanel>
+            <TextBlock Text="Advanced controls in one place" FontSize="23" />
+            <TextBlock Text="Engine and plugin commands are available. Examples: status ASF, farm account_name, redeem account_name GAME-KEY." Foreground="{StaticResource Muted}" Margin="0,10,0,20" />
+          </StackPanel>
+          <DockPanel Grid.Row="1">
+            <Button DockPanel.Dock="Right" Content="Run" Click="Command_Click" />
+            <TextBox x:Name="CommandValue" Margin="0,0,12,16" KeyDown="CommandValue_KeyDown" />
+          </DockPanel>
+          <TextBox Grid.Row="2" x:Name="CommandOutput" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Margin="0" />
+        </Grid>
+        <Grid x:Name="LogsPane" Visibility="Collapsed">
+          <TextBox x:Name="LogOutput" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" Margin="0" />
+        </Grid>
+        <ScrollViewer x:Name="SettingsPane" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+          <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <TextBlock Text="Steam Card Pilot" FontSize="26" FontWeight="SemiBold" />
+            <TextBlock Text="An English desktop control center for your Steam accounts." Foreground="{StaticResource Muted}" Margin="0,10,0,28" />
+            <TextBlock Text="Local Files" FontSize="20" />
+            <TextBlock x:Name="DataPathText" Foreground="{StaticResource Muted}" Margin="0,10,0,16" />
+            <WrapPanel>
+              <Button Content="Open Account Folder" Click="OpenConfig_Click" />
+              <Button Content="Open Log Folder" Click="OpenLogs_Click" />
+            </WrapPanel>
+            <TextBlock Text="Advanced settings" FontSize="20" Margin="0,28,0,10" />
+            <TextBlock Text="Account files contain advanced farming, trading, and game preferences. The engine watches these files for changes. Plugins are stored in engine/plugins." Foreground="{StaticResource Muted}" />
+            <Button Content="Restart Engine" Click="Restart_Click" HorizontalAlignment="Left" Margin="0,20,0,0" />
+            <TextBlock Text="Closing the app shuts down its managed engine. Automatic engine updates are disabled to keep the desktop package consistent." Foreground="{StaticResource Muted}" Margin="0,16,0,28" />
+            <Button Content="Licenses and Components" Click="Licenses_Click" HorizontalAlignment="Left" />
+          </StackPanel>
+        </ScrollViewer>
+        <ScrollViewer x:Name="AboutPane" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+          <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+            <TextBlock Text="Steam Card Pilot" FontSize="32" FontWeight="SemiBold" />
+            <TextBlock Text="Your Steam accounts and cards, in one control center." Foreground="#8CA8C6" Margin="0,12,0,30" />
+            <TextBlock Text="An open-source Windows application by Mr_Aec." FontSize="16" />
+            <TextBlock Text="Version 1.2.0 • © 2026 Mr_Aec" Foreground="#4A9EFF" Margin="0,18,0,0" />
+            <TextBlock Text="Connect your accounts, choose a game, and manage card farming." Foreground="#8CA8C6" Margin="0,18,0,0" />
+            <Button Content="Licenses and Components" Click="Licenses_Click" HorizontalAlignment="Left" Margin="0,24,0,0" />
+          </StackPanel>
+        </ScrollViewer>
+        <Grid x:Name="LicensesPane" Visibility="Collapsed">
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <StackPanel Margin="0,0,0,16">
+            <TextBlock Text="Interface and original additions: © 2026 Mr_Aec. Engine: ArchiSteamFarm, © 2015–2026 Łukasz “JustArchi” Domeradzki and contributors, Apache-2.0. Dependencies retain their respective licenses." Foreground="#9BB0C8" Margin="0,0,0,16"/>
+            <WrapPanel><Button Content="Project License" Tag="LICENSE-Mr_Aec.txt" Click="LicenseFile_Click"/><Button Content="Engine License" Tag="LICENSE.txt" Click="LicenseFile_Click"/><Button Content="Attributions" Tag="NOTICE.txt" Click="LicenseFile_Click"/></WrapPanel>
+          </StackPanel>
+          <TextBox Grid.Row="1" x:Name="LicenseText" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0"/>
+        </Grid>
+      </Grid>
+      <TextBlock Grid.Row="2" x:Name="StatusText" Text="Starting engine…" Foreground="#7C93AC" FontSize="11" Margin="0,14,0,0" />
+    </Grid>
+  </Grid>
+</Window>
