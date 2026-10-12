@@ -525,6 +525,7 @@
             <TextBlock Text="If Family View is enabled, enter your existing four-digit PIN. It is stored in local account settings." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,0,16" />
             <TextBlock Text="New passwords are used for sign-in and are not saved by this form. The engine can store Steam session data in your local user folder." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,0,0,20" />
             <Button x:Name="AddAccountButton" Content="Create Account" Click="AddAccount_Click" HorizontalAlignment="Left" Background="#1D6BD5" Foreground="White" />
+            <TextBlock x:Name="AccountStatus" Text="Enter an account name and your Steam sign-in details." TextWrapping="Wrap" Foreground="#EDF3FC" Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite" />
             <Border Height="1" Background="#293A50" Margin="0,30" />
             <TextBlock Text="Import Existing Accounts" FontSize="21" />
             <TextBlock Text="Select account JSON files from your old config folder. Existing accounts are not overwritten; ASF.json and IPC.config are excluded." Foreground="{StaticResource Muted}" Margin="0,10,0,20" />

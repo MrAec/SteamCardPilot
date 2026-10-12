@@ -25,6 +25,7 @@ public partial class MainWindow : Window {
  private bool closed;
  private readonly SemaphoreSlim refreshGate = new(1, 1);
  private bool refreshFailed;
+ private bool addingAccount;
  private readonly FarmingSelection farmingSelection;
  private readonly DashboardData dashboard;
  private readonly List<ActivityView> activities = [];
@@ -203,24 +204,48 @@ public partial class MainWindow : Window {
   }, "Sign-in information submitted. Connecting the account.");
  }
  private async void AddAccount_Click(object sender, RoutedEventArgs e) {
-  if (!ready) { StatusText.Text = "Wait for the engine connection first."; return; }
+  if (addingAccount || closing) return;
   string name = NewName.Text.Trim(), login = NewLogin.Text.Trim(), password = NewPassword.Password;
   string parentalPin = NewParentalPin.Password;
-  if (!AccountNameRules.IsValid(name)) { StatusText.Text = AccountNameRules.Help; return; }
-  if (string.IsNullOrWhiteSpace(login)) { StatusText.Text = "Enter your Steam username."; return; }
-  if (parentalPin.Length != 0 && !ParentalPinSettings.IsValid(parentalPin)) { StatusText.Text = "The Family View PIN must contain exactly four digits."; return; }
-  await RunAsync(async () => {
-   if (File.Exists(Path.Combine(engine.DataPath, "config", name + ".json"))) throw new InvalidOperationException("This account name already exists.");
+  if (!AccountNameRules.IsValid(name)) { SetAccountStatus(AccountNameRules.Help); NewName.Focus(); return; }
+  if (string.IsNullOrWhiteSpace(login)) { SetAccountStatus("Enter your Steam username."); NewLogin.Focus(); return; }
+  if (parentalPin.Length != 0 && !ParentalPinSettings.IsValid(parentalPin)) { SetAccountStatus("The Family View PIN must contain exactly four digits."); NewParentalPin.Focus(); return; }
+  addingAccount = true;
+  AddAccountButton.IsEnabled = false;
+  AddAccountButton.Content = "Adding account…";
+  SetAccountStatus("Waiting for the engine or the previous operation to finish…");
+  // Unlike optional commands, a submitted account must wait its turn, not lose the click.
+  await operations.WaitAsync();
+  try {
+   if (closing) return;
+   if (!ready) throw new InvalidOperationException("The engine is not connected. Open Settings and restart the engine, then try again. Keep the complete downloaded folder together.");
+   if (File.Exists(Path.Combine(engine.DataPath, "config", name + ".json"))) throw new InvalidOperationException("This account name already exists. Open Accounts to continue its sign-in, or choose a different account name.");
+   SetAccountStatus("Creating the account…");
    var accountConfig = new JsonObject { ["Enabled"] = true, ["SteamLogin"] = login, ["UseLoginKeys"] = true };
    if (parentalPin.Length != 0) accountConfig["SteamParentalCode"] = parentalPin;
    await engine.RequestAsync("Api/Bot/" + Uri.EscapeDataString(name), new { BotConfig = accountConfig }, true);
    await engine.WaitForBotAsync(name);
+   SetAccountStatus("Submitting sign-in details…");
    if (!string.IsNullOrEmpty(password)) await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(name)}/Input", new { Type = 2, Value = password }, true);
-   NewPassword.Clear(); NewParentalPin.Clear(); NewLogin.Clear(); NewName.Clear();
    JsonNode? loaded = await engine.RequestAsync("Api/Bot/" + Uri.EscapeDataString(name));
    if (loaded?[name]?["KeepRunning"]?.GetValue<bool>() != true) await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(name)}/Start", post: true);
+   NewPassword.Clear(); NewParentalPin.Clear(); NewLogin.Clear(); NewName.Clear();
+   SetAccountStatus("Account created. Select it and submit any required sign-in information.");
    await RefreshAsync(); ShowPane(ManagePane, "Accounts");
-  }, "Account created. Select it and submit any required sign-in information.");
+  } catch (Exception error) {
+   string detail = error is OperationCanceledException ? "The engine request timed out. Check Accounts before trying again; the account may already have been created."
+    : error is HttpRequestException ? "The engine is unavailable. Restart it from Settings and try again." : error.Message;
+   SetAccountStatus("Could not finish adding the account: " + detail);
+  } finally {
+   operations.Release();
+   addingAccount = false;
+   AddAccountButton.IsEnabled = true;
+   AddAccountButton.Content = "Create Account";
+  }
+ }
+ private void SetAccountStatus(string message) {
+  AccountStatus.Text = message;
+  StatusText.Text = message;
  }
  private async void Import_Click(object sender, RoutedEventArgs e) {
   if (!ready) { StatusText.Text = "Wait for the engine connection first."; return; }

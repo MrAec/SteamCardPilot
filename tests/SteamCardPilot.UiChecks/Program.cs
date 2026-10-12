@@ -2,6 +2,12 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
+using System.Reflection;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json.Nodes;
 using SteamCardPilot;
 
 internal static class Program {
@@ -30,7 +36,87 @@ internal static class Program {
   Button save = Children(pin).OfType<Button>().Single(b => Equals(b.Content, "Save PIN"));
   Require(Contrast(((SolidColorBrush)save.Foreground).Color, ((SolidColorBrush)save.Background).Color) >= 4.5, "The PIN action must have readable text on its blue background.");
   Console.WriteLine("Dark tooltip, keyboard focus layout, and PIN button contrast checks passed.");
+  if (Environment.GetCommandLineArgs().Contains("--preview")) CheckAccountSubmission();
   app.Shutdown();
+ }
+ private static void CheckAccountSubmission() {
+  SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+  var window = new MainWindow();
+  var form = (ScrollViewer)window.FindName("AccountsPane");
+  var manage = (Grid)window.FindName("ManagePane");
+  var create = (Button)window.FindName("AddAccountButton");
+  var name = (TextBox)window.FindName("NewName");
+  var login = (TextBox)window.FindName("NewLogin");
+  var password = (PasswordBox)window.FindName("NewPassword");
+  var status = (TextBlock)window.FindName("AccountStatus");
+  var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+  object engine = typeof(MainWindow).GetField("engine", flags)!.GetValue(window)!;
+  using var handler = new AccountEngineStub();
+  using var client = new HttpClient(handler) { BaseAddress = new Uri("http://127.0.0.1/") };
+  ((HttpClient)engine.GetType().GetField("http", flags)!.GetValue(engine)!).Dispose();
+  engine.GetType().GetField("http", flags)!.SetValue(engine, client);
+  name.Text = "../invalid";
+  create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  Require(status.Text.Contains("1–64"), "Invalid names must show validation inside the account form.");
+  name.Text = "UiCheck_" + Guid.NewGuid().ToString("N");
+  login.Text = "synthetic-login";
+  password.Password = "synthetic-password";
+  create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  Require(status.Text.Contains("not connected") && password.Password == "synthetic-password" && create.IsEnabled,
+   "Engine startup failures must be visible and preserve entered details for retry.");
+  typeof(MainWindow).GetField("ready", flags)!.SetValue(window, true);
+  var gate = (SemaphoreSlim)typeof(MainWindow).GetField("operations", flags)!.GetValue(window)!;
+  gate.Wait();
+  form.Visibility = Visibility.Visible;
+  handler.Name = name.Text;
+  create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  Require(!create.IsEnabled && status.Text.Contains("Waiting") && handler.Created == 0,
+   "Submitting during another operation must show pending progress instead of discarding the click.");
+  create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  gate.Release();
+  PumpUntil(() => create.IsEnabled);
+  Require(handler.Created == 1 && handler.PasswordReceived && handler.Started,
+   $"A pending submission must create exactly one account, send its password, and start it after the previous operation finishes. Created={handler.Created}, password={handler.PasswordReceived}, started={handler.Started}, status={status.Text}");
+  Require(manage.Visibility == Visibility.Visible && form.Visibility == Visibility.Collapsed && name.Text.Length == 0 && password.Password.Length == 0,
+   "Successful creation must clear sign-in fields and open Accounts.");
+  form.Visibility = Visibility.Visible;
+  name.Text = handler.Name + "_retry";
+  login.Text = "synthetic-login";
+  password.Password = "synthetic-password";
+  handler.Reject = true;
+  create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  PumpUntil(() => create.IsEnabled);
+  Require(status.Text.Contains("Synthetic API failure") && password.Password.Length > 0 && form.Visibility == Visibility.Visible,
+   "API errors must stay visible beside the create button and keep input available for retry.");
+  Console.WriteLine("Account submit validation, startup failure, queued clicks, duplicate prevention, sign-in handoff, and API failure checks passed.");
+ }
+ private static void PumpUntil(Func<bool> done) {
+  var frame = new DispatcherFrame();
+  var timeout = DateTime.UtcNow.AddSeconds(10);
+  var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+  timer.Tick += (_, _) => { if (done() || DateTime.UtcNow >= timeout) frame.Continue = false; };
+  timer.Start();
+  Dispatcher.PushFrame(frame);
+  timer.Stop();
+  Require(done(), "Account submission did not complete in time.");
+ }
+ private sealed class AccountEngineStub : HttpMessageHandler {
+  internal string Name = "";
+  internal int Created;
+  internal bool PasswordReceived, Started, Reject;
+  protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+   string path = request.RequestUri!.AbsolutePath;
+   JsonNode? body = request.Content is null ? null : JsonNode.Parse(await request.Content.ReadAsStringAsync(cancellationToken));
+   if (Reject) return Response(new { Success = false, Message = "Synthetic API failure" });
+   if (request.Method == HttpMethod.Post && path == "/Api/Bot/" + Name) {
+    Created++;
+    Require(body?["botConfig"]?["SteamPassword"] is null, "Account files must not receive plaintext sign-in passwords.");
+   }
+   if (path.EndsWith("/Input")) PasswordReceived = body?["type"]?.GetValue<int>() == 2 && body?["value"]?.GetValue<string>() == "synthetic-password";
+   if (path.EndsWith("/Start")) { Require(PasswordReceived, "Password input must precede starting the account."); Started = true; }
+   return Response(new { Success = true, Result = new Dictionary<string, object> { [Name] = new { KeepRunning = Started, RequiredInput = 0 } } });
+  }
+  private static HttpResponseMessage Response(object body) => new(HttpStatusCode.OK) { Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(body), Encoding.UTF8, "application/json") };
  }
  private static IEnumerable<DependencyObject> Children(DependencyObject parent) {
   foreach (object child in LogicalTreeHelper.GetChildren(parent)) {
