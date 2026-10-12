@@ -67,6 +67,22 @@ var restoredSelection = new FarmingSelection(selectionFile);
 Require(restoredSelection.Get("TestAccount") == 42 && restoredSelection.Get("SecondAccount") == 43 && restoredSelection.Get("NewAccount") == 0, "Selections must be isolated by account and restored on reopening.");
 restoredSelection.Set("TestAccount", 0);
 Require(new FarmingSelection(selectionFile).Get("TestAccount") == 0, "Switching to all games must be saved.");
+restoredSelection.SetPlaying("TogetherAccount", [42, 43, 42]);
+Require(new FarmingSelection(selectionFile).GetPlaying("TogetherAccount")!.SequenceEqual(new uint[] { 42, 43 }), "Together selections must persist independently and deduplicate IDs.");
+restoredSelection.Set("TogetherAccount", 42);
+Require(new FarmingSelection(selectionFile).GetPlaying("TogetherAccount") is null, "Switching to card farming must clear the saved manual mode.");
+string legacySelectionFile = Path.Combine(Path.GetDirectoryName(cacheFile)!, "legacy-selection.json");
+File.WriteAllText(legacySelectionFile, """{"LegacyAccount":42,"AutoAccount":0}""");
+Require(new FarmingSelection(legacySelectionFile).Get("LegacyAccount") == 42 && new FarmingSelection(legacySelectionFile).Get("AutoAccount") == 0, "The original selection file format must still load.");
+var manualDashboard = new DashboardData();
+var manualSnapshot = JsonNode.Parse("""{"TestAccount":{"IsConnectedAndLoggedOn":true,"KeepRunning":true,"CardsFarmer":{"Paused":true,"NowFarming":false,"DesktopPlayingAppIDs":[42,43],"GamesToFarm":[{"AppID":42,"GameName":"Manual One","CardsRemaining":3}]}}}""")!.AsObject();
+manualDashboard.Update(manualSnapshot);
+Require(manualDashboard.Games.Count == 2 && manualDashboard.Games.All(game => game.Active && game.Manual && game.State.Contains("Playing together")) && manualDashboard.RemainingTime == TimeSpan.Zero,
+ "Manual games must show active playtime without claiming card farming or a card completion estimate.");
+Require(BotView.FromJson("TestAccount", manualSnapshot["TestAccount"]).State == "Playing together", "A manually playing account must not appear paused.");
+manualSnapshot["TestAccount"]!["IsConnectedAndLoggedOn"] = false;
+manualDashboard.Update(manualSnapshot);
+Require(manualDashboard.Games.All(game => !game.Active), "Disconnecting must clear every manual active game.");
 string relativeSelectionFile = Path.GetRelativePath(Environment.CurrentDirectory, selectionFile);
 var relativeSelection = new FarmingSelection(relativeSelectionFile);
 relativeSelection.Set("RelativeAccount", 44);
@@ -106,6 +122,12 @@ try {
  try { await engine.RequestAsync("Api/Bot/TestAccount/DesktopGame/42", post: true); }
  catch (InvalidOperationException) { offlineSelectionRejected = true; }
  Require(offlineSelectionRejected, "Offline accounts must reject farming requests.");
+ foreach (uint[] selection in new uint[][] { [42, 43], [], [0], Enumerable.Range(1, 33).Select(id => (uint)id).ToArray() }) {
+  bool rejectedSelection = false;
+  try { await engine.RequestAsync("Api/Bot/TestAccount/DesktopPlay", selection, true); }
+  catch (InvalidOperationException) { rejectedSelection = true; }
+  Require(rejectedSelection, "Offline or invalid simultaneous selections must return failure rather than silently succeeding.");
+ }
  await engine.RequestAsync("Api/Bot/TestAccount/Input", new { Type = 2, Value = "not-a-real-password" }, true);
  string botFile = Path.Combine(testPath, "config", "TestAccount.json");
  Require(!File.ReadAllText(botFile).Contains("not-a-real-password"), "Sign-in passwords must not be persisted.");

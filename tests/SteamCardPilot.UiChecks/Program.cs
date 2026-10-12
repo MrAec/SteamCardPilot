@@ -36,7 +36,7 @@ internal static class Program {
   Button save = Children(pin).OfType<Button>().Single(b => Equals(b.Content, "Save PIN"));
   Require(Contrast(((SolidColorBrush)save.Foreground).Color, ((SolidColorBrush)save.Background).Color) >= 4.5, "The PIN action must have readable text on its blue background.");
   Console.WriteLine("Dark tooltip, keyboard focus layout, and PIN button contrast checks passed.");
-  if (Environment.GetCommandLineArgs().Contains("--preview")) CheckAccountSubmission();
+  if (Environment.GetCommandLineArgs().Contains("--preview")) { CheckAccountSubmission(); CheckGameActions(); }
   app.Shutdown();
  }
  private static void CheckAccountSubmission() {
@@ -99,6 +99,104 @@ internal static class Program {
   Dispatcher.PushFrame(frame);
   timer.Stop();
   Require(done(), "Account submission did not complete in time.");
+ }
+ private static void CheckGameActions() {
+  var window = new MainWindow();
+  var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+  object engine = typeof(MainWindow).GetField("engine", flags)!.GetValue(window)!;
+  using var handler = new GameEngineStub();
+  using var client = new HttpClient(handler) { BaseAddress = new Uri("http://127.0.0.1/") };
+  ((HttpClient)engine.GetType().GetField("http", flags)!.GetValue(engine)!).Dispose();
+  engine.GetType().GetField("http", flags)!.SetValue(engine, client);
+  typeof(MainWindow).GetField("ready", flags)!.SetValue(window, true);
+  var grid = (DataGrid)window.FindName("AllGames");
+  var status = (TextBlock)window.FindName("StatusText");
+  void Refresh() { Task task = (Task)typeof(MainWindow).GetMethod("RefreshAsync", flags)!.Invoke(window, null)!; PumpUntil(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
+  static string Bot(object game) => (string)game.GetType().GetProperty("BotName")!.GetValue(game)!;
+  static uint Id(object game) => (uint)game.GetType().GetProperty("AppId")!.GetValue(game)!;
+  void Select(params uint[] ids) {
+   grid.SelectedItems.Clear();
+   foreach (object game in grid.Items.Cast<object>().Where(game => Bot(game) == "Online" && ids.Contains(Id(game)))) grid.SelectedItems.Add(game);
+  }
+  void Click(string name) => ((Button)window.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  Refresh();
+  Select(42, 43);
+  Refresh();
+  Require(grid.SelectedItems.Count == 2, "Polling must preserve Ctrl/Shift multi-game selection.");
+  Select(42);
+  var gate = (SemaphoreSlim)typeof(MainWindow).GetField("operations", flags)!.GetValue(window)!;
+  gate.Wait();
+  Click("StartSingleGame");
+  Require(handler.FarmRequests.Count == 0 && status.Text.Contains("Waiting"), "Game start clicks must wait for another operation rather than disappear.");
+  gate.Release();
+  PumpUntil(() => status.Text.StartsWith("Card farming started"));
+  object saved = typeof(MainWindow).GetField("farmingSelection", flags)!.GetValue(window)!;
+  uint SavedGame() => (uint)saved.GetType().GetMethod("Get", flags)!.Invoke(saved, ["Online"])!;
+  Require(SavedGame() == 42, "Only successful farming must save the selected game.");
+  Select(43);
+  handler.FailOnline = true;
+  Click("StartSingleGame");
+  PumpUntil(() => status.Text.Contains("Synthetic Steam play blocked"));
+  Require(SavedGame() == 42, "A rejected start must show its reason without overwriting the last successful selection.");
+  handler.FailOnline = false;
+  Click("StartAllGames");
+  PumpUntil(() => status.Text.StartsWith("Farm:") && status.Text.Contains("1 failed"));
+  Require(status.Text.Contains("2 account(s) completed") && status.Text.Contains("1 offline skipped") && handler.FarmRequests.Any(request => request == "Healthy/0"),
+   "One failing or offline account must not block other accounts in Farm All.");
+  Select(42, 43);
+  Click("PlaySelectedGames");
+  PumpUntil(() => status.Text.StartsWith("Play Together:"));
+  Require(handler.ManualRequests.Last().SequenceEqual(new uint[] { 42, 43 }) && grid.SelectedItems.Count == 2,
+   "Multi-select must send both games and keep the selection after refresh.");
+  Require(grid.SelectedItems.Cast<object>().All(game => (string)game.GetType().GetProperty("State")!.GetValue(game)! == "●  Playing together"),
+   "Manual games must be displayed as playing together rather than paused or farming cards.");
+  Click("StopGames");
+  PumpUntil(() => status.Text.StartsWith("Stop:"));
+  Require(handler.Pauses == 1 && handler.Bots["Online"]!["CardsFarmer"]!["DesktopPlayingAppIDs"]!.AsArray().Count == 0, "Stop must clear manual play even when the farmer is paused.");
+  Button resume = Children(window).OfType<Button>().Single(button => button.Content is string text && text.Contains("Resume Saved Selection"));
+  resume.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  PumpUntil(() => status.Text.StartsWith("Resume:"));
+  Require(handler.ManualRequests.Count == 2 && handler.ManualRequests.Last().SequenceEqual(new uint[] { 42, 43 }), "Resume must restore the saved simultaneous mode.");
+  int before = handler.ManualRequests.Count;
+  handler.Bots["Online"]!["CardsFarmer"]!["GamesToFarm"] = new JsonArray(Enumerable.Range(1, 33).Select(id => (JsonNode)new JsonObject { ["AppID"] = id, ["CardsRemaining"] = 1 }).ToArray());
+  Refresh();
+  Click("PlayAllGames");
+  Require(status.Text.Contains("up to 32") && handler.ManualRequests.Count == before, "An oversized Play All selection must reject the whole operation before changing accounts.");
+  Console.WriteLine("Game start queuing, Steam errors, partial bulk success, multi-selection polling, simultaneous play, stop/resume, and Steam limit checks passed.");
+ }
+ private sealed class GameEngineStub : HttpMessageHandler {
+  internal readonly JsonObject Bots = JsonNode.Parse("""
+   {"Online":{"KeepRunning":true,"IsConnectedAndLoggedOn":true,"CardsFarmer":{"Paused":true,"GamesToFarm":[{"AppID":42,"GameName":"One","CardsRemaining":2},{"AppID":43,"GameName":"Two","CardsRemaining":3}]}},
+    "Healthy":{"KeepRunning":true,"IsConnectedAndLoggedOn":true,"CardsFarmer":{"Paused":true,"GamesToFarm":[{"AppID":44,"CardsRemaining":2}]}},
+    "Failed":{"KeepRunning":true,"IsConnectedAndLoggedOn":true,"CardsFarmer":{"Paused":true,"GamesToFarm":[{"AppID":45,"CardsRemaining":2}]}},
+    "Offline":{"KeepRunning":false,"IsConnectedAndLoggedOn":false,"CardsFarmer":{"Paused":true,"GamesToFarm":[{"AppID":46,"CardsRemaining":2}]}}}
+   """)!.AsObject();
+  internal readonly List<string> FarmRequests = [];
+  internal readonly List<uint[]> ManualRequests = [];
+  internal bool FailOnline;
+  internal int Pauses;
+  protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+   string[] parts = request.RequestUri!.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+   if (request.Method == HttpMethod.Get) return Response(true, Bots);
+   string name = Uri.UnescapeDataString(parts[2]);
+   JsonObject farmer = Bots[name]!["CardsFarmer"]!.AsObject();
+   if (parts[3] == "DesktopGame") {
+    FarmRequests.Add(name + "/" + parts[4]);
+    if (name == "Failed" || FailOnline && name == "Online") return Response(false, message: "Synthetic Steam play blocked");
+    farmer["NowFarming"] = true; farmer["Paused"] = false; farmer["DesktopPlayingAppIDs"] = new JsonArray();
+   } else if (parts[3] == "DesktopPlay") {
+    uint[] ids = System.Text.Json.JsonSerializer.Deserialize<uint[]>(await request.Content!.ReadAsStringAsync(cancellationToken))!;
+    ManualRequests.Add(ids);
+    farmer["DesktopPlayingAppIDs"] = new JsonArray(ids.Select(id => (JsonNode)JsonValue.Create(id)!).ToArray());
+    farmer["NowFarming"] = false; farmer["Paused"] = true;
+   } else if (parts[3] == "Pause") {
+    Pauses++; farmer["DesktopPlayingAppIDs"] = new JsonArray(); farmer["NowFarming"] = false; farmer["Paused"] = true;
+   }
+   return Response(true);
+  }
+  private static HttpResponseMessage Response(bool success, JsonNode? result = null, string? message = null) => new(HttpStatusCode.OK) {
+   Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(new { Success = success, Result = result, Message = message }), Encoding.UTF8, "application/json")
+  };
  }
  private sealed class AccountEngineStub : HttpMessageHandler {
   internal string Name = "";

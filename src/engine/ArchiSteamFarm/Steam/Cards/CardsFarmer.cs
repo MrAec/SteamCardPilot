@@ -133,6 +133,9 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 	private readonly SemaphoreSlim FarmingInitializationSemaphore = new(1, 1);
 	private readonly SemaphoreSlim DesktopSelectionSemaphore = new(1, 1);
 	internal uint DesktopSelectedAppID { get; private set; }
+	[JsonInclude]
+	[PublicAPI]
+	public ImmutableHashSet<uint> DesktopPlayingAppIDs { get; private set; } = [];
 	private readonly ConcurrentList<Game> GamesToFarm = [];
 	private readonly Timer? IdleFarmingTimer;
 
@@ -203,6 +206,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 	}
 
 	internal void OnDisconnected() {
+		DesktopPlayingAppIDs = [];
 		if (!NowFarming) {
 			return;
 		}
@@ -276,12 +280,38 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 		}
 	}
 
-	internal async Task SelectDesktopGame(uint appID) {
+	internal async Task<(bool Success, string Message)> SelectDesktopGame(uint appID) {
 		await DesktopSelectionSemaphore.WaitAsync().ConfigureAwait(false);
 		try {
+			if (!Bot.IsConnectedAndLoggedOn) return (false, "Wait for the account to connect to Steam first.");
+			if (!Bot.IsPlayingPossible) return (false, "Steam is blocking play because this account or its library is in use elsewhere. Close the other game and try again.");
 			await Pause(true).ConfigureAwait(false);
 			DesktopSelectedAppID = appID;
 			await Resume(true).ConfigureAwait(false);
+			if (!NowFarming) {
+				await Pause(true).ConfigureAwait(false);
+				return (false, "Farming could not start. The game may have no cards remaining, be excluded by your farming settings, or Steam's badge page may be unavailable. Scan Games and check Activity.");
+			}
+			return (true, "Card farming started.");
+		} finally {
+			DesktopSelectionSemaphore.Release();
+		}
+	}
+
+	internal static bool IsValidDesktopPlaySelection(IReadOnlyCollection<uint> appIDs) => (appIDs.Count is > 0 and <= ArchiHandler.MaxGamesPlayedConcurrently) && appIDs.All(static id => id > 0) && (appIDs.Distinct().Count() == appIDs.Count);
+
+	internal async Task<(bool Success, string Message)> PlayDesktopGames(IReadOnlyCollection<uint> appIDs) {
+		if (!IsValidDesktopPlaySelection(appIDs)) return (false, "Select 1–32 different games per account. No games were changed.");
+		await DesktopSelectionSemaphore.WaitAsync().ConfigureAwait(false);
+		try {
+			if (!Bot.IsConnectedAndLoggedOn) return (false, "Wait for the account to connect to Steam first.");
+			if (!Bot.IsPlayingPossible) return (false, "Steam is blocking play because this account or its library is in use elsewhere. Close the other game and try again.");
+			await Pause(true).ConfigureAwait(false);
+			DesktopSelectedAppID = 0;
+			(bool success, string message) = await Bot.Actions.Play(appIDs).ConfigureAwait(false);
+			if (success && Bot.IsConnectedAndLoggedOn) DesktopPlayingAppIDs = appIDs.ToImmutableHashSet();
+			else return (false, message);
+			return (true, "Selected games are playing together. Automatic card farming is paused.");
 		} finally {
 			DesktopSelectionSemaphore.Release();
 		}
@@ -307,6 +337,10 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 	}
 
 	internal async Task Pause(bool permanent) {
+		if (!DesktopPlayingAppIDs.IsEmpty) {
+			DesktopPlayingAppIDs = [];
+			await Bot.ArchiHandler.PlayGames([]).ConfigureAwait(false);
+		}
 		if (permanent) {
 			PermanentlyPaused = true;
 		}
@@ -321,6 +355,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 	}
 
 	internal async Task<bool> Resume(bool userAction) {
+		if (userAction && !DesktopPlayingAppIDs.IsEmpty) await Pause(true).ConfigureAwait(false);
 		if (PermanentlyPaused) {
 			if (!userAction) {
 				Bot.ArchiLogger.LogGenericInfo(Strings.IgnoredPermanentPauseEnabled);

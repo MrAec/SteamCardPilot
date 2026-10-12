@@ -303,7 +303,7 @@ public sealed class Actions : IAsyncDisposable, IDisposable {
 
 	[PublicAPI]
 	public async Task<(bool Success, string Message)> Pause(bool permanent, ushort resumeInSeconds = 0) {
-		if (Bot.CardsFarmer.Paused) {
+		if (Bot.CardsFarmer.Paused && Bot.CardsFarmer.DesktopPlayingAppIDs.IsEmpty) {
 			return (false, Strings.BotAutomaticIdlingPausedAlready);
 		}
 

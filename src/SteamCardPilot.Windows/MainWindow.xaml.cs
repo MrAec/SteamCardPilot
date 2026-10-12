@@ -101,10 +101,11 @@ public partial class MainWindow : Window {
   await RunAsync(async () => { await engine.StartAsync(); ready = true; timer.Start(); await RefreshAsync(); }, "Engine ready. Add an account or import existing account files.");
  }
 
- private async Task RunAsync(Func<Task> action, string success = "Operation complete.") {
+ private async Task RunAsync(Func<Task> action, string? success = "Operation complete.") {
   if (closing) return;
-  if (!await operations.WaitAsync(0)) { StatusText.Text = "Waiting for the previous operation…"; return; }
-  try { refreshFailed = false; StatusText.Text = "Working…"; await action(); if (!refreshFailed) StatusText.Text = success; }
+  if (operations.CurrentCount == 0) StatusText.Text = "Waiting for the previous operation…";
+  await operations.WaitAsync();
+  try { if (closing) return; refreshFailed = false; StatusText.Text = "Working…"; await action(); if (!refreshFailed && success is not null) StatusText.Text = success; }
   catch (Exception e) { StatusText.Text = e is OperationCanceledException ? "The request timed out. Check Activity for the current operation status." : e is HttpRequestException ? "The engine is unavailable. You can restart it from Settings." : "Operation failed: " + e.Message; if (!ready) ConnectionText.Text = "●  Engine not ready"; }
   finally { operations.Release(); }
  }
@@ -174,7 +175,7 @@ public partial class MainWindow : Window {
   string action = (string)((Button)sender).Tag;
   if (action == "Resume") {
    if (!bot.Online) { StatusText.Text = "Connect the account and wait for Steam sign-in to finish."; return; }
-   await RunAsync(async () => { await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(bot.Name)}/DesktopGame/{farmingSelection.Get(bot.Name)}", post: true); await RefreshAsync(); }, "Resuming the saved game selection.");
+   await RunAsync(async () => { await ResumeSelectionAsync(bot.Name); await RefreshAsync(); }, "Saved selection started.");
    return;
   }
   await RunAsync(async () => { await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(bot.Name)}/{action}", action == "Pause" ? new { Permanent = true } : null, true); await RefreshAsync(); });
@@ -272,17 +273,20 @@ public partial class MainWindow : Window {
   List<GameView> queued = dashboard.Games.Where(g => !g.Active && g.Listed && g.Cards > 0).ToList();
   ActiveGames.ItemsSource = active;
   QueueGames.ItemsSource = queued;
-  string? selection = (AllGames.SelectedItem as GameView)?.Key;
+  HashSet<string> selections = AllGames.SelectedItems.Cast<GameView>().Select(game => game.Key).ToHashSet(StringComparer.Ordinal);
   List<GameView> displayed = queueOnly ? queued : dashboard.Games;
-  AllGames.ItemsSource = displayed;
-  AllGames.SelectedItem = displayed.FirstOrDefault(g => g.Key == selection);
-  GamesDescription.Text = "Select a game to start. Stopping keeps the connection and game list; cached card counts are marked as last known.";
+  // Avoid replacing rows when nothing changed; keep Ctrl/Shift selections across polling.
+  if (AllGames.ItemsSource is not List<GameView> previous || !previous.SequenceEqual(displayed)) {
+   AllGames.ItemsSource = displayed;
+   foreach (GameView game in displayed.Where(game => selections.Contains(game.Key))) AllGames.SelectedItems.Add(game);
+  }
+  GamesDescription.Text = "Use Ctrl or Shift to select games. Farm All follows the card algorithm; Play Together runs up to 32 games per account for playtime and pauses automatic card farming.";
   CardCount.Text = dashboard.Games.Sum(g => g.Cards).ToString();
   GameCountLabel.Text = $"{dashboard.Games.Count} games • {dashboard.Games.Count(g => !g.Listed)} last known";
   ActiveCount.Text = active.Count.ToString();
   EarnedCount.Text = dashboard.ObservedDrops.ToString();
   TimeEstimate.Text = DashboardData.FormatTime(dashboard.RemainingTime);
-  ActiveTitle.Text = $"●  Games Farming Now ({active.Count})";
+  ActiveTitle.Text = $"●  Games Running Now ({active.Count})";
   QueueTitle.Text = $"Queued Games ({queued.Count})";
   ActiveSummary.Text = $"●  Active games: {active.Count}";
   QueueSummary.Text = $"●  Queued games: {queued.Count}";
@@ -317,6 +321,7 @@ public partial class MainWindow : Window {
   await RunAsync(async () => { await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(game.BotName)}/Pause", new { Permanent = true }, true); await RefreshAsync(); }, $"Farming paused for {game.BotName}.");
  }
  private async void StartSelectedGame_Click(object sender, RoutedEventArgs e) {
+  if (AllGames.SelectedItems.Count != 1) { StatusText.Text = "Select exactly one game to farm, or use Play Selected Together for multiple games."; return; }
   if (!ready || AllGames.SelectedItem is not GameView game) { StatusText.Text = "Select a game from the list first."; return; }
   BotView? bot = BotList.Items.Cast<BotView>().FirstOrDefault(b => b.Name == game.BotName);
   if (bot?.Online != true) { StatusText.Text = "Connect this account from Accounts and wait for Steam sign-in to finish."; return; }
@@ -324,7 +329,24 @@ public partial class MainWindow : Window {
    await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(game.BotName)}/DesktopGame/{game.AppId}", post: true);
    farmingSelection.Set(game.BotName, game.AppId);
    await RefreshAsync();
-  }, $"Farming requested for {game.Name} only. The engine is checking card eligibility.");
+  }, $"Card farming started for {game.Name}.");
+ }
+ private async Task ResumeSelectionAsync(string name) {
+  uint[]? playing = farmingSelection.GetPlaying(name);
+  if (playing is not null) await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(name)}/DesktopPlay", playing, true);
+  else await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(name)}/DesktopGame/{farmingSelection.Get(name)}", post: true);
+ }
+ private async void PlaySelectedGames_Click(object sender, RoutedEventArgs e) => await PlayGamesTogetherAsync(AllGames.SelectedItems.Cast<GameView>().ToArray());
+ private async void PlayAllGames_Click(object sender, RoutedEventArgs e) => await PlayGamesTogetherAsync(dashboard.Games.ToArray());
+ private async Task PlayGamesTogetherAsync(GameView[] games) {
+  if (!ready || games.Length == 0) { StatusText.Text = "Select games and wait for the engine connection."; return; }
+  var groups = games.GroupBy(game => game.BotName).ToDictionary(group => group.Key, group => group.Select(game => game.AppId).Distinct().ToArray(), StringComparer.Ordinal);
+  if (groups.Values.Any(ids => ids.Length > 32)) { StatusText.Text = "Steam allows up to 32 games together per account. Select fewer games; no accounts were changed."; return; }
+  BotView[] accounts = BotList.Items.Cast<BotView>().Where(bot => groups.ContainsKey(bot.Name) && bot.Online).ToArray();
+  await RunBatchAsync(accounts, async bot => {
+   await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(bot.Name)}/DesktopPlay", groups[bot.Name], true);
+   farmingSelection.SetPlaying(bot.Name, groups[bot.Name]);
+  }, "Play Together", groups.Count - accounts.Length);
  }
  private async void ScanGames_Click(object sender, RoutedEventArgs e) {
   if (!ready) return;
@@ -336,8 +358,14 @@ public partial class MainWindow : Window {
   }, "Scanning paused accounts. The list updates as scans finish.");
  }
  private async void StopSelectedGame_Click(object sender, RoutedEventArgs e) {
-  if (AllGames.SelectedItem is not GameView game || !ready) { StatusText.Text = "Select a game from the list first."; return; }
-  await RunAsync(async () => { await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(game.BotName)}/Pause", new { Permanent = true }, true); await RefreshAsync(); }, "Farming stopped; the Steam connection stays open.");
+  HashSet<string> names = AllGames.SelectedItems.Cast<GameView>().Select(game => game.BotName).ToHashSet(StringComparer.Ordinal);
+  if (names.Count == 0 || !ready) { StatusText.Text = "Select games from the accounts you want to stop."; return; }
+  BotView[] accounts = BotList.Items.Cast<BotView>().Where(bot => names.Contains(bot.Name) && bot.Online).ToArray();
+  await RunBatchAsync(accounts, StopGamesAsync, "Stop", names.Count - accounts.Length);
+ }
+ private async Task StopGamesAsync(BotView bot) {
+  if (bot.State is "Paused" or "Ready") return;
+  await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(bot.Name)}/Pause", new { Permanent = true }, true);
  }
  private async void AllPause_Click(object sender, RoutedEventArgs e) => await RunForAllAsync("Pause");
  private async void AllFarm_Click(object sender, RoutedEventArgs e) => await RunForAllAsync("Farm");
@@ -345,23 +373,31 @@ public partial class MainWindow : Window {
  private async Task RunForAllAsync(string action) {
   if (!ready || BotList.Items.Count == 0) { StatusText.Text = "Add an account and wait for the engine connection."; return; }
   BotView[] accounts = BotList.Items.Cast<BotView>().ToArray();
-  if (action is "Farm" or "Resume" && accounts.Any(b => !b.Online)) {
-   StatusText.Text = "All accounts must be signed in for bulk farming. You can start individual online accounts from Games.";
-   return;
-  }
+  BotView[] online = accounts.Where(bot => bot.Online).ToArray();
+  await RunBatchAsync(online, async bot => {
+   if (action == "Farm") {
+    await engine.RequestAsync($"Api/Bot/{Uri.EscapeDataString(bot.Name)}/DesktopGame/0", post: true);
+    farmingSelection.Set(bot.Name, 0);
+   } else if (action == "Pause") await StopGamesAsync(bot);
+   else await ResumeSelectionAsync(bot.Name);
+  }, action, accounts.Length - online.Length);
+ }
+ private async Task RunBatchAsync(BotView[] accounts, Func<BotView, Task> action, string label, int skipped) {
+  if (accounts.Length == 0) { StatusText.Text = "No selected accounts are online. Sign in from Accounts first."; return; }
   await RunAsync(async () => {
-   foreach (BotView bot in accounts) {
-    string target = Uri.EscapeDataString(bot.Name);
-    if (action is "Farm" or "Resume" && !bot.Running) await engine.RequestAsync($"Api/Bot/{target}/Start", post: true);
-    if (action == "Farm" && bot.Online) {
-     await engine.RequestAsync($"Api/Bot/{target}/DesktopGame/0", post: true);
-     farmingSelection.Set(bot.Name, 0);
-    }
-    else if (action == "Pause") { if (bot.Running && bot.State != "Paused") await engine.RequestAsync($"Api/Bot/{target}/Pause", new { Permanent = true }, true); }
-    else if (bot.State == "Paused") await engine.RequestAsync($"Api/Bot/{target}/DesktopGame/{farmingSelection.Get(bot.Name)}", post: true);
-   }
+   using var limit = new SemaphoreSlim(4, 4);
+   string?[] failures = await Task.WhenAll(accounts.Select(async bot => {
+    await limit.WaitAsync();
+    try { await action(bot); return null; }
+    catch (Exception error) { return bot.Name + ": " + error.Message; }
+    finally { limit.Release(); }
+   }));
    await RefreshAsync();
-  });
+   string[] errors = failures.OfType<string>().ToArray();
+   StatusText.Text = $"{label}: {accounts.Length - errors.Length} account(s) completed, {skipped} offline skipped, {errors.Length} failed."
+    + (errors.Length > 0 ? " " + string.Join(" | ", errors) : "")
+    + (refreshFailed ? " Could not refresh the latest account status; check Activity." : "");
+  }, null);
  }
  private async void LoadInventory_Click(object sender, RoutedEventArgs e) {
   if (Selected is not { Online: true } bot || !ready) { StatusText.Text = "Select an online account from Accounts."; return; }

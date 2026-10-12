@@ -469,14 +469,20 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
           </Grid.RowDefinitions>
-          <DockPanel Margin="0,0,0,18">
-            <Button Content="Scan Games" DockPanel.Dock="Right" Click="ScanGames_Click" />
-            <Button Content="▶ Start Selected Game" DockPanel.Dock="Right" Click="StartSelectedGame_Click" Background="#176BC7" />
-            <Button Content="■ Stop" DockPanel.Dock="Right" Click="StopSelectedGame_Click" />
-            <TextBlock x:Name="GamesDescription" Text="Select a game and start card farming." TextWrapping="Wrap" Foreground="#9BB0C8" VerticalAlignment="Center" />
-          </DockPanel>
+          <StackPanel Margin="0,0,0,18">
+            <WrapPanel>
+              <Button Content="Scan Games" Click="ScanGames_Click" />
+              <Button x:Name="StartSingleGame" Content="▶ Farm Selected Game" Click="StartSelectedGame_Click" Background="#176BC7" />
+              <Button x:Name="PlaySelectedGames" Content="▶ Play Selected Together" Click="PlaySelectedGames_Click" />
+              <Button x:Name="StartAllGames" Content="▶ Farm All Games" Click="AllFarm_Click" />
+              <Button x:Name="PlayAllGames" Content="▶ Play All Together" Click="PlayAllGames_Click" />
+              <Button x:Name="StopGames" Content="■ Stop Selected Accounts" Click="StopSelectedGame_Click" />
+            </WrapPanel>
+            <TextBlock x:Name="GamesDescription" TextWrapping="Wrap" Foreground="#9BB0C8" Margin="0,6,0,0" />
+            <TextBlock Text="{Binding Text, ElementName=StatusText}" TextWrapping="Wrap" Foreground="#EDF3FC" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite" />
+          </StackPanel>
           <Border Grid.Row="1" Style="{StaticResource Card}" Padding="14">
-            <DataGrid x:Name="AllGames">
+            <DataGrid x:Name="AllGames" SelectionMode="Extended" SelectionUnit="FullRow">
               <DataGrid.Columns>
                 <DataGridTemplateColumn Header="Game" Width="*" CellTemplate="{StaticResource GameTitle}" />
                 <DataGridTextColumn Header="Account" Binding="{Binding BotName}" Width="130" />

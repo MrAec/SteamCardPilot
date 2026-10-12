@@ -36,6 +36,7 @@ using ArchiSteamFarm.IPC.Requests;
 using ArchiSteamFarm.IPC.Responses;
 using ArchiSteamFarm.Localization;
 using ArchiSteamFarm.Steam;
+using ArchiSteamFarm.Steam.Cards;
 using ArchiSteamFarm.Steam.Data;
 using ArchiSteamFarm.Steam.Storage;
 using Microsoft.AspNetCore.Http;
@@ -520,8 +521,19 @@ public sealed class BotController : ArchiController {
 		if (bots.Any(static bot => !bot.IsConnectedAndLoggedOn)) {
 			return BadRequest(new GenericResponse(false, "Wait for the account to connect to Steam first."));
 		}
-		await Utilities.InParallel(bots.Select(bot => bot.CardsFarmer.SelectDesktopGame(appID))).ConfigureAwait(false);
-		return Ok(new GenericResponse(true));
+		IList<(bool Success, string Message)> results = await Utilities.InParallel(bots.Select(bot => bot.CardsFarmer.SelectDesktopGame(appID))).ConfigureAwait(false);
+		return Ok(new GenericResponse(results.All(static result => result.Success), string.Join(Environment.NewLine, results.Select(static result => result.Message))));
+	}
+
+	[EndpointSummary("Plays 1–32 selected games together, pausing automatic card farming")]
+	[HttpPost("{botNames:required}/DesktopPlay")]
+	public async Task<ActionResult<GenericResponse>> DesktopPlayPost(string botNames, [FromBody] uint[] appIDs) {
+		ArgumentNullException.ThrowIfNull(appIDs);
+		if (!CardsFarmer.IsValidDesktopPlaySelection(appIDs)) return BadRequest(new GenericResponse(false, "Select 1–32 different games per account. No games were changed."));
+		HashSet<Bot>? bots = Bot.GetBots(botNames);
+		if ((bots == null) || (bots.Count == 0)) return BadRequest(new GenericResponse(false, Strings.FormatBotNotFound(botNames)));
+		IList<(bool Success, string Message)> results = await Utilities.InParallel(bots.Select(bot => bot.CardsFarmer.PlayDesktopGames(appIDs))).ConfigureAwait(false);
+		return Ok(new GenericResponse(results.All(static result => result.Success), string.Join(Environment.NewLine, results.Select(static result => result.Message))));
 	}
 
 	[EndpointSummary("Resumes given bots")]

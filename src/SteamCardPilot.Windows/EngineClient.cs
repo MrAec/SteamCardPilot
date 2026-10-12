@@ -75,7 +75,7 @@ internal sealed class EngineClient : IDisposable {
  internal async Task<JsonNode?> RequestAsync(string path, object? body = null, bool post = false) {
   using var request = new HttpRequestMessage(post ? HttpMethod.Post : HttpMethod.Get, path);
   if (post) request.Content = JsonContent.Create(body ?? new { });
-  using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(path.Contains("/DesktopGame/", StringComparison.Ordinal) ? 180 : path.Contains("/Inventory/", StringComparison.Ordinal) || path.EndsWith("/Pause", StringComparison.Ordinal) ? 60 : 12));
+  using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(path.Contains("/DesktopGame/", StringComparison.Ordinal) ? 180 : path.Contains("/Inventory/", StringComparison.Ordinal) || path.EndsWith("/Pause", StringComparison.Ordinal) || path.EndsWith("/DesktopPlay", StringComparison.Ordinal) ? 60 : 12));
   using HttpResponseMessage response = await http.SendAsync(request, cancellation.Token);
   JsonNode? result;
   try { result = JsonNode.Parse(await response.Content.ReadAsStringAsync(cancellation.Token)); }

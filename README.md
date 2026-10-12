@@ -58,11 +58,13 @@ The desktop package includes ItemsMatcher, MobileAuthenticator, and Monitoring. 
 3. Approve the sign-in request in the Steam mobile app, or enter a Steam Guard code if requested.
 4. If Family View is enabled, provide your existing PIN.
 5. Open **Games** and wait for the eligible-game scan. Use **Scan Games** to request a fresh scan for paused accounts.
-6. Select a row and choose **Start Selected Game**. **Stop** keeps the connection open; **Resume** restores the saved selection.
+6. Select a row and choose **Farm Selected Game**. **Stop Selected Accounts** keeps the connection open; **Resume** restores the saved selection.
 
 Accounts connect when the desktop opens and wait for your farming choice. Closing the desktop shuts down its managed engine. Reopening reconnects using available local session data; saved selections are retained, and farming resumes when requested.
 
-**Start All Farming** explicitly switches online accounts to farming all eligible games. **Resume Saved Selection** preserves each account's previous choice. All accounts must complete sign-in before bulk start/resume.
+**Farm All Games** (also **Start All Farming** on Overview) starts automatic card farming on online accounts. The engine decides when to play games singly or in groups. Offline accounts are skipped, and errors on one account do not stop the others. The result lists successes, skipped accounts, and failures.
+
+Use Ctrl/Shift to select several games, then **Play Selected Together**, or use **Play All Together** for the displayed catalog. This plays up to 32 games per account using the engine's manual play support and pauses automatic card farming. Selections exceeding that limit are rejected before any accounts are changed. Multiple games are intended for playtime; they do not promise faster card drops ([ASF FAQ](https://github.com/JustArchiNET/ArchiSteamFarm/wiki/FAQ)). **Resume Saved Selection** restores either the card farming selection or simultaneous play, including after restarting the desktop.
 
 ## Privacy and local storage
 

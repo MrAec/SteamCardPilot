@@ -1055,6 +1055,7 @@ public sealed class Bot : IAsyncDisposable, IDisposable {
 		if (!IsPlayingPossible) {
 			PlayingWasBlocked = true;
 			ArchiLogger.LogGenericInfo(Strings.BotAccountOccupied);
+			if (!CardsFarmer.DesktopPlayingAppIDs.IsEmpty) await CardsFarmer.Pause(true).ConfigureAwait(false);
 
 			return;
 		}
@@ -3942,7 +3943,7 @@ public sealed class Bot : IAsyncDisposable, IDisposable {
 	}
 
 	private async Task ResetGamesPlayed() {
-		if (!IsConnectedAndLoggedOn || CardsFarmer.NowFarming) {
+		if (!IsConnectedAndLoggedOn || CardsFarmer.NowFarming || !CardsFarmer.DesktopPlayingAppIDs.IsEmpty) {
 			return;
 		}
 
@@ -3975,6 +3976,7 @@ public sealed class Bot : IAsyncDisposable, IDisposable {
 			ArchiLogger.LogGenericInfo(Strings.FormatBotIdlingSelectedGames(nameof(BotConfig.GamesPlayedWhileIdle), string.Join(", ", BotConfig.GamesPlayedWhileIdle)));
 		}
 
+		if (!CardsFarmer.DesktopPlayingAppIDs.IsEmpty) return;
 		await ArchiHandler.PlayGames(BotConfig.GamesPlayedWhileIdle, BotConfig.CustomGamePlayedWhileIdle).ConfigureAwait(false);
 	}
 

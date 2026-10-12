@@ -12,12 +12,14 @@ internal sealed record BotView(string Name, string State, string Details, int Ca
   JsonNode? farmer = bot?["CardsFarmer"];
   bool farming = farmer?["NowFarming"]?.GetValue<bool>() == true;
   bool paused = farmer?["Paused"]?.GetValue<bool>() == true;
+  uint[] manual = farmer?["DesktopPlayingAppIDs"] is JsonArray playingIDs ? playingIDs.Select(id => id?.GetValue<uint>() ?? 0).Where(id => id > 0).ToArray() : [];
   int input = bot?["RequiredInput"]?.GetValue<int>() ?? 0;
-  string state = input == 7 ? "Waiting for mobile approval" : input != 0 ? "Waiting for sign-in" : !running ? "Stopped" : !online ? "Connecting" : paused ? "Paused" : farming ? "Farming cards" : "Ready";
+  string state = input == 7 ? "Waiting for mobile approval" : input != 0 ? "Waiting for sign-in" : !running ? "Stopped" : !online ? "Connecting" : manual.Length > 0 ? "Playing together" : paused ? "Paused" : farming ? "Farming cards" : "Ready";
   JsonArray? games = farmer?["GamesToFarm"]?.AsArray();
   int cards = games?.Sum(g => g?["CardsRemaining"]?.GetValue<int>() ?? 0) ?? 0;
   string current = farmer?["CurrentGamesFarming"] is JsonArray playing && playing.Count > 0 ? string.Join(", ", playing.Select(g => g?["GameName"]?.GetValue<string>() ?? g?["AppID"]?.ToString())) : "No game is running";
   string nickname = bot?["Nickname"]?.GetValue<string>() ?? name;
+  if (online && manual.Length > 0) current = $"Playing {manual.Length} game(s) together";
   return new(name, state, $"{nickname}  •  {current}", cards, input, online) { Running = running };
  }
 }

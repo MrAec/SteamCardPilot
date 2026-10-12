@@ -8,9 +8,9 @@ namespace SteamCardPilot;
 internal sealed record ActivityView(string Text, string Time);
 internal sealed record InventoryView(string Name, string Detail);
 
-internal sealed record GameView(string BotName, uint AppId, string Name, int Cards, float Hours, bool Active, bool Listed = true) {
+internal sealed record GameView(string BotName, uint AppId, string Name, int Cards, float Hours, bool Active, bool Listed = true, bool Manual = false) {
  public string Initial => Name.Length == 0 ? "?" : Name[..1].ToUpperInvariant();
- public string State => Active ? "●  Farming cards" : Listed ? "Waiting" : "Last known";
+ public string State => Active ? Manual ? "●  Playing together" : "●  Farming cards" : Listed ? "Waiting" : "Last known";
  public string CardsLabel => $"{Cards} cards left";
  public string HoursLabel => $"{Hours:0.#} hours played";
  public string Estimate => DashboardData.FormatTime(TimeSpan.FromMinutes(Cards * 30));
@@ -44,18 +44,23 @@ internal sealed class DashboardData {
    bool farming = farmer?["NowFarming"]?.GetValue<bool>() == true && farmer?["Paused"]?.GetValue<bool>() != true;
    if (!online) foreach (string key in previousCards.Keys.Where(k => k.StartsWith(name + "/", StringComparison.Ordinal)).ToArray()) previousCards.Remove(key);
    HashSet<uint> active = farmer?["CurrentGamesFarming"] is JsonArray current ? current.Select(g => g?["AppID"]?.GetValue<uint>() ?? 0).ToHashSet() : [];
+   HashSet<uint> manual = online && farmer?["DesktopPlayingAppIDs"] is JsonArray manualIDs ? manualIDs.Select(id => id?.GetValue<uint>() ?? 0).Where(id => id > 0).ToHashSet() : [];
    if (online && farming && TimeSpan.TryParse(farmer?["TimeRemaining"]?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out TimeSpan time) && time > longest) longest = time;
-   if (farmer?["GamesToFarm"] is not JsonArray queue) continue;
+   JsonArray queue = farmer?["GamesToFarm"] as JsonArray ?? [];
    foreach (JsonNode? game in queue) {
     uint appId = game?["AppID"]?.GetValue<uint>() ?? 0;
     if (appId == 0) continue;
-    var row = new GameView(name, appId, game?["GameName"]?.GetValue<string>() ?? $"Game {appId}", game?["CardsRemaining"]?.GetValue<int>() ?? 0, game?["HoursPlayed"]?.GetValue<float>() ?? 0, online && farming && active.Contains(appId));
+    var row = new GameView(name, appId, game?["GameName"]?.GetValue<string>() ?? $"Game {appId}", game?["CardsRemaining"]?.GetValue<int>() ?? 0, game?["HoursPlayed"]?.GetValue<float>() ?? 0, manual.Contains(appId) || online && farming && active.Contains(appId), Manual: manual.Contains(appId));
     games.Add(row);
     // Count only observed decreases in known games. Removed queues and offline accounts are not card drops.
     if (online) {
      if (previousCards.TryGetValue(row.Key, out int old) && old > row.Cards) ObservedDrops += old - row.Cards;
      previousCards[row.Key] = row.Cards;
     }
+   }
+   foreach (uint id in manual.Where(id => !games.Any(game => game.BotName == name && game.AppId == id))) {
+    GameView cached = catalog.GetValueOrDefault(name + "/" + id) ?? new(name, id, $"Game {id}", 0, 0, false);
+    games.Add(cached with { Active = true, Listed = false, Manual = true });
    }
   }
   HashSet<string> present = games.Select(g => g.Key).ToHashSet(StringComparer.Ordinal);
